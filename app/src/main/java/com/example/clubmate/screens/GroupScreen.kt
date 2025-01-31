@@ -3,13 +3,10 @@ package com.example.clubmate.screens
 import android.annotation.SuppressLint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,16 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,8 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -51,12 +44,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.viewmodel.GroupActivity
+import com.example.clubmate.util.group.GroupActivityDesign
 import com.example.clubmate.viewmodel.GroupViewmodel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "MutableCollectionMutableState")
@@ -72,11 +64,14 @@ fun GroupScreen(
     var pendingImages by remember { mutableStateOf(mutableListOf<Pair<String, android.net.Uri>>()) }
     val context = LocalContext.current
 
+
     LaunchedEffect(Unit) {
         grpViewmodel.loadGroupInfo(grpId) { details ->
             details?.let { grpDetails = details }
         }
     }
+
+    DisposableEffect(Unit) { onDispose { grpViewmodel.clearMessage() } }
 
     val grpActivity = grpViewmodel.grpActivity.collectAsState()
     LaunchedEffect(grpActivity.value) {
@@ -139,7 +134,6 @@ fun GroupScreen(
                                 )
                             )
                         }
-
                     }
                 }
 
@@ -177,7 +171,6 @@ fun GroupScreen(
                 modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start
             ) {
                 selectedImageUri?.let { uri ->
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -333,123 +326,10 @@ fun GroupScreen(
 
                     }
                 }
-            }
 
-        }
-    }
-}
-
-
-@Composable
-fun GroupActivityDesign(
-    activity: GroupActivity,
-    sender: String,
-    isSent: Boolean,
-    sentTime: String,
-    sentDate: String,
-    onDeleteMessage: (GroupActivity) -> Unit
-) {
-
-    var isSelected by remember { mutableStateOf(false) }
-
-    val bgColor by remember {
-        mutableStateOf(
-            if (isSent) Color(0xFFD5F1C4)
-            else Color(0xBFF1D4D4)
-        )
-    }
-
-    Box(
-        modifier = Modifier.fillMaxWidth(), contentAlignment = if (isSent) Alignment.CenterEnd
-        else Alignment.CenterStart
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = if (isSent) Arrangement.End else Arrangement.Start
-        ) {
-            Column(
-                horizontalAlignment = if (isSent) Alignment.End else Alignment.Start
-            ) {
-                Text(
-                    text = sender,
-                    fontSize = 12.sp,
-                    fontFamily = roboto,
-                    modifier = Modifier
-                        .widthIn(max = 280.dp)
-                        .padding(end = if (isSent) 5.dp else 0.dp),
-                    color = Color.Black
-                )
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(bgColor)
-                        .padding(4.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = { if (isSent) isSelected = true },
-                                onTap = { if (isSelected) isSelected = false }
-                            )
-                        },
-                ) {
-                    if (activity.message.imageRef.isNotEmpty()) {
-                        // Display Image with preloading and caching
-                        Box(modifier = Modifier.size(300.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .align(Alignment.Center),
-                                color = Color.Gray,
-                                strokeWidth = 4.dp
-                            )
-                            AsyncImage(
-                                model = activity.message.imageRef,
-                                contentDescription = "Sent Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .size(300.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                error = painterResource(id = R.drawable.add_24px) // Error Image
-                            )
-                        }
-                    } else {
-                        // Display Text
-                        Text(
-                            text = activity.message.messageText,
-                            fontSize = 16.sp,
-                            fontFamily = roboto,
-                            color = Color.Black,
-                            modifier = Modifier
-                                .padding(horizontal = 15.dp)
-                                .widthIn(max = 280.dp)
-                        )
-                    }
-                }
-                Row(
-                    horizontalArrangement = if (isSent) Arrangement.End else Arrangement.Start,
-                    modifier = Modifier.padding(end = if (isSent) 5.dp else 0.dp)
-                ) {
-                    Text(
-                        text = sentTime, fontFamily = roboto, fontSize = 10.sp
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = sentDate, fontFamily = roboto, fontSize = 10.sp
-                    )
-                }
-            }
-            AnimatedVisibility(isSelected) {
-                Icon(painter = painterResource(id = R.drawable.delete_msg),
-                    contentDescription = "Delete Item",
-                    modifier = Modifier
-                        .padding(bottom = 5.dp, start = 5.dp)
-                        .size(30.dp)
-                        .clickable {
-                            onDeleteMessage(activity)
-                        }
-                )
             }
         }
     }
 }
+
+

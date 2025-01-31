@@ -207,7 +207,7 @@ fun GroupDetailsScreen(
                 DetailsIconDesign("description", grpDetails.description) {}
 
                 DetailsIconDesign(tag = "invite link", isCopied = true, value = grpDetails.grpId) {
-                    launchToast(context = context, text = "Copied")
+                    launchToast(context = context, text = "invite link copied")
                     clipboardManager.setText(AnnotatedString(grpDetails.grpId))
                 }
 
@@ -219,7 +219,6 @@ fun GroupDetailsScreen(
                     tag = "created at",
                     value = grpViewModel.convertTimestamp(grpDetails.createdAt)
                 ) {}
-
             }
 
             Spacer(modifier = Modifier.height(60.dp))
@@ -246,7 +245,6 @@ fun GroupDetailsScreen(
                 }
             }
         }
-
     }
 }
 

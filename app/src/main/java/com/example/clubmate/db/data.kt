@@ -1,5 +1,6 @@
 package com.example.clubmate.db
 
+import com.example.clubmate.viewmodel.GroupDetails
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -118,8 +119,6 @@ class Routes {
     object Developers
 
 }
-
-
 
 
 sealed class UserState {

@@ -22,10 +22,8 @@ import androidx.compose.ui.unit.sp
 import com.example.clubmate.ui.theme.roboto
 
 
-
-
 @Composable
-fun ChatsDesign(reciever: String, lastMessage: String, onClick: () -> Unit) {
+fun ChatsDesign(reciever: String, lastMessage: String, uri: String, onClick: () -> Unit) {
 
     val name by remember {
         mutableStateOf(reciever)
@@ -54,7 +52,7 @@ fun ChatsDesign(reciever: String, lastMessage: String, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = lastMsg,
+                    text = if (uri.isNotEmpty()) "image..." else lastMsg,
                     color = Color.Gray,
                     fontFamily = roboto,
                     fontSize = 14.sp,

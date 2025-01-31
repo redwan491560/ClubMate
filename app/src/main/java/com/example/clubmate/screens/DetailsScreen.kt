@@ -186,22 +186,10 @@ fun UserDetailsScreen(
 }
 
 
-@Preview(showSystemUi = true)
-@Composable
-private fun DKsd() {
-    UserDetailsScreen(
-        userDetails = Routes.UserDetails(
-            username = "Redwan", email = "redwan@gmail.com"
-        ), navController = rememberNavController(), chatViewmodel = ChatViewModel()
-    )
-}
-
-
 @Composable
 fun IconDesignDetailScreen(
     src: Painter,
     title: String,
-    isCopied: Boolean = false,
     onClick: () -> Unit,
 ) {
 
@@ -237,7 +225,7 @@ fun ButtonDesignDetailsScreen(src: Painter, title: String, onClick: () -> Unit) 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -270,39 +258,32 @@ fun DetailsIconDesign(tag: String, value: String, isCopied: Boolean = false, onC
         ) {
             Text(
                 text = tag,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 color = Color.Black,
                 fontFamily = roboto,
-                modifier = Modifier.width(100.dp)
+                modifier = Modifier.weight(2f)
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = value,
-                    fontSize = 16.sp,
-                    color = Color.Black,
-                    modifier = Modifier.width(260.dp),
-                    fontFamily = roboto,
+
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                color = Color.Black,
+                modifier = Modifier.weight(7f),
+                fontFamily = roboto,
+            )
+            if (isCopied) {
+                Image(
+                    painter = painterResource(id = R.drawable.baseline_content_copy_24),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .weight(0.6f)
+                        .width(25.dp)
+                        .padding(end = 5.dp)
+                        .clickable {
+                            onClick()
+                        }
                 )
-                if (isCopied) {
-                    Image(
-                        painter = painterResource(id = R.drawable.baseline_content_copy_24),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(25.dp)
-                            .padding(end = 6.dp)
-                            .clickable {
-                                onClick()
-                            }
-                    )
-                }
-
             }
-
         }
     }
-
 }

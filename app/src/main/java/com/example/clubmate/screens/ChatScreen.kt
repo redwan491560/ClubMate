@@ -276,18 +276,29 @@ fun ChatScreen(
                                     val uid = currentUser?.uid
                                     if (uid != null) {
                                         val sentMessage = text.trim()
-                                        selectedImageUri = null
-                                        if (sentMessage.isNotEmpty()) {
+                                        selectedImageUri?.let { imageUri ->
                                             chatViewmodel.sendMessage(
                                                 chatId = userModel.chatID,
-                                                message = sentMessage,
+                                                messageText = "",
+                                                imageUri = imageUri,
                                                 senderId = uid,
                                                 receiverId = receiverId
                                             )
-                                            text = ""
-                                        } else {
-                                            launchToast(context, "Message cannot be empty")
+                                            selectedImageUri = null
+                                        } ?: run {
+                                            if (sentMessage.isNotEmpty()) {
+                                                chatViewmodel.sendMessage(
+                                                    chatId = userModel.chatID,
+                                                    messageText = sentMessage,
+                                                    senderId = uid,
+                                                    receiverId = receiverId
+                                                )
+                                                text = ""
+                                            } else {
+                                                launchToast(context, "Message cannot be empty")
+                                            }
                                         }
+
                                     }
                                 })
                     },
@@ -324,7 +335,7 @@ fun ChatScreen(
                         Spacer(modifier = Modifier.height(5.dp))
                         val message = messages[ind]
 
-                        if (message.messageText.isNotEmpty()) {
+                        if (message.messageText.isNotEmpty() || message.imageRef.isNotEmpty()) {
                             MessageItem(
                                 message = message,
                                 isSent = messages[ind].senderId == user.uid,

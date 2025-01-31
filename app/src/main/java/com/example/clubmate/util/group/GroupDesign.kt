@@ -51,7 +51,7 @@ fun GroupDesign(
                 )
 
                 Text(
-                    text = lastAct.message.messageText,
+                    text = if (lastAct.message.imageRef.isNotEmpty()) "image..." else lastAct.message.messageText,
                     color = Color.Gray,
                     fontFamily = roboto,
                     fontSize = 14.sp,

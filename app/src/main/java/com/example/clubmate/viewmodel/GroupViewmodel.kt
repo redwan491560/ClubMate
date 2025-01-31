@@ -38,8 +38,10 @@ class GroupViewmodel : AuthViewModel() {
     var userState by mutableStateOf<UserState>(UserState.Success(null))
         private set
 
+
     // fetches he searched result
     var user by mutableStateOf<UserModel?>(UserModel())
+    var group by mutableStateOf<GroupDetails?>(GroupDetails())
 
 
     private val _groupsList = MutableStateFlow<List<GroupDetails>>(emptyList())
@@ -116,6 +118,9 @@ class GroupViewmodel : AuthViewModel() {
     }
 
 
+    // group fun s
+
+
     fun createGroup(
         grpId: String,
         createdBy: String,
@@ -135,7 +140,6 @@ class GroupViewmodel : AuthViewModel() {
         )
 
         grpStatus.value = GroupStatus.Loading
-
         grpRef.child(grpId).child("grpInfo").setValue(grpDetails).addOnSuccessListener {
 
             grpStatus.value = GroupStatus.Success
@@ -202,6 +206,162 @@ class GroupViewmodel : AuthViewModel() {
             }
     }
 
+    fun listenForGroups(uid: String) {
+        userRef.child(uid).child("groups_connected")
+            .addListenerForSingleValueEvent(object :
+                ValueEventListener { // Changed to SingleValueEvent
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val groupIds =
+                            snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                                ?: emptyList()
+
+                        if (groupIds.isEmpty()) {
+                            _groupsList.value = emptyList() // No groups found
+                            return
+                        }
+
+                        val fetchedGroups = mutableListOf<GroupDetails>()
+                        var processedGroups = 0
+
+                        groupIds.forEach { grpId ->
+                            grpRef.child(grpId).child("grpInfo")
+                                .addListenerForSingleValueEvent(object : ValueEventListener {
+                                    override fun onDataChange(grpSnapshot: DataSnapshot) {
+                                        processedGroups++ // Increment counter
+
+                                        if (grpSnapshot.exists()) {
+                                            val groupDetails =
+                                                grpSnapshot.getValue(GroupDetails::class.java)
+                                            groupDetails?.let { details ->
+                                                getLastActivity(details.grpId) { lastActivity ->
+                                                    details.lastActivity = lastActivity
+                                                        ?: GroupActivity() // Default if null
+                                                    fetchedGroups.add(details)
+
+                                                    if (processedGroups == groupIds.size) {
+                                                        _groupsList.value = fetchedGroups
+                                                    }
+                                                }
+                                            } ?: checkAndUpdateList(
+                                                processedGroups,
+                                                groupIds.size,
+                                                fetchedGroups
+                                            )
+                                        } else {
+                                            checkAndUpdateList(
+                                                processedGroups,
+                                                groupIds.size,
+                                                fetchedGroups
+                                            )
+                                        }
+                                    }
+
+                                    override fun onCancelled(error: DatabaseError) {
+                                        Log.e(
+                                            "listenForGroups",
+                                            "Error fetching group details: ${error.message}"
+                                        )
+                                        processedGroups++
+                                        checkAndUpdateList(
+                                            processedGroups,
+                                            groupIds.size,
+                                            fetchedGroups
+                                        )
+                                    }
+                                })
+                        }
+                    } else {
+                        _groupsList.value = emptyList() // If groups_connected is missing
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("listenForGroups", "Error fetching user groups: ${error.message}")
+                }
+            })
+    }
+
+    // Helper function to check if all groups are processed
+    private fun checkAndUpdateList(
+        processed: Int,
+        total: Int,
+        fetchedGroups: MutableList<GroupDetails>
+    ) {
+        if (processed == total) {
+            _groupsList.value = fetchedGroups
+        }
+    }
+
+
+    fun leaveGroup(uid: String, grpId: String, onResult: (Boolean) -> Unit) {
+
+        userRef.child(uid).child("groups_connected")
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val groupIds = snapshot.getValue(object :
+                            GenericTypeIndicator<MutableList<String>>() {})
+                        if (groupIds != null && groupIds.contains(grpId)) {
+                            groupIds.remove(grpId) // Remove the group ID from the list
+
+                            // Update the modified list back to the database
+                            userRef.child(uid).child("groups_connected")
+                                .setValue(groupIds)
+                                .addOnSuccessListener {
+                                    Log.d("leaveGroup", "Successfully removed group: $grpId")
+                                    onResult(true)
+                                }
+                                .addOnFailureListener { error ->
+                                    Log.e(
+                                        "leaveGroup",
+                                        "Failed to update groups_connected: ${error.message}"
+                                    )
+                                    onResult(false)
+                                }
+                        } else {
+                            Log.d("leaveGroup", "Group ID not found in groups_connected")
+                            onResult(false)
+                        }
+                    } else {
+                        Log.d("leaveGroup", "No groups_connected found for user")
+                        onResult(false)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("leaveGroup", "Database error: ${error.message}")
+                    onResult(false)
+                }
+            })
+    }
+
+    fun joinGroup(uid: String, grpId: String, onComplete: (Boolean) -> Unit) {
+
+        grpRef.child(grpId).get().addOnSuccessListener {
+            if (it.exists()) {
+                fetchUserDetailsByUid(uid) { userModel ->
+                    if (userModel != null) {
+                        addParticipants(
+                            grpId = grpId, email = userModel.email,
+                            category = Category.General
+                        )
+                        onComplete(true)
+                    } else {
+                        onComplete(false)
+                    }
+                }
+            } else {
+                onComplete(false)
+            }
+        }.addOnFailureListener {
+            onComplete(false)
+        }
+    }
+
+    fun leaveGroup(uid: String, grpId: String) {
+
+    }
 
     // participants
 
@@ -309,7 +469,6 @@ class GroupViewmodel : AuthViewModel() {
     }
 
     private fun removeUserFromGroupsConnected(userUid: String?, grpId: String) {
-
         // Get the user's groups_connected reference
 
         if (userUid != null) {
@@ -418,107 +577,6 @@ class GroupViewmodel : AuthViewModel() {
     }
 
 
-    // others
-
-
-    fun listenForGroups(uid: String) {
-        userRef.child(uid).child("groups_connected")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val groupIds =
-                            snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
-                                ?: emptyList()
-
-                        val fetchedGroups = mutableListOf<GroupDetails>()
-
-                        groupIds.forEach { grpId ->
-                            grpRef.child(grpId).child("grpInfo")
-                                .addListenerForSingleValueEvent(object : ValueEventListener {
-                                    override fun onDataChange(grpSnapshot: DataSnapshot) {
-                                        if (grpSnapshot.exists()) {
-                                            val groupDetails =
-                                                grpSnapshot.getValue(GroupDetails::class.java)
-                                            groupDetails?.let {
-                                                fetchedGroups.add(it)
-
-                                                // Update the groups list when all groups are fetched
-                                                if (fetchedGroups.size == groupIds.size) {
-                                                    _groupsList.value = fetchedGroups
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    override fun onCancelled(error: DatabaseError) {
-                                        Log.e(
-                                            "listenForGroups",
-                                            "Error fetching group details: ${error.message}"
-                                        )
-                                    }
-                                })
-                        }
-
-                        // Handle case where no group IDs exist
-                        if (groupIds.isEmpty()) {
-                            _groupsList.value = emptyList()
-                        }
-                    } else {
-                        // If groups_connected is empty or doesn't exist
-                        _groupsList.value = emptyList()
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("listenForGroups", "Error fetching user groups: ${error.message}")
-                }
-            })
-    }
-
-
-    fun leaveGroup(uid: String, grpId: String, onResult: (Boolean) -> Unit) {
-
-        userRef.child(uid).child("groups_connected")
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val groupIds = snapshot.getValue(object :
-                            GenericTypeIndicator<MutableList<String>>() {})
-                        if (groupIds != null && groupIds.contains(grpId)) {
-                            groupIds.remove(grpId) // Remove the group ID from the list
-
-                            // Update the modified list back to the database
-                            userRef.child(uid).child("groups_connected")
-                                .setValue(groupIds)
-                                .addOnSuccessListener {
-                                    Log.d("leaveGroup", "Successfully removed group: $grpId")
-                                    onResult(true)
-                                }
-                                .addOnFailureListener { error ->
-                                    Log.e(
-                                        "leaveGroup",
-                                        "Failed to update groups_connected: ${error.message}"
-                                    )
-                                    onResult(false)
-                                }
-                        } else {
-                            Log.d("leaveGroup", "Group ID not found in groups_connected")
-                            onResult(false)
-                        }
-                    } else {
-                        Log.d("leaveGroup", "No groups_connected found for user")
-                        onResult(false)
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("leaveGroup", "Database error: ${error.message}")
-                    onResult(false)
-                }
-            })
-    }
-
-
     fun updateUserRole(email: String, category: Category, grpId: String) {
 
         val participantsRef = grpRef.child(grpId).child("participants")
@@ -550,6 +608,7 @@ class GroupViewmodel : AuthViewModel() {
             })
     }
 
+
     // activities
 
     fun addActivity(
@@ -577,6 +636,7 @@ class GroupViewmodel : AuthViewModel() {
                         type = GroupActivityType.Image
                     )
                     saveActivityToDatabase(grpId, messageId, activityData)
+                    updateLastActivity(grpId, activityData)
                 }
             } else {
                 // Text message scenario
@@ -591,9 +651,11 @@ class GroupViewmodel : AuthViewModel() {
                     type = GroupActivityType.Text
                 )
                 saveActivityToDatabase(grpId, messageId, activityData)
+                updateLastActivity(grpId, activityData)
             }
         }
     }
+
 
     private fun uploadImageToStorage(imageUri: Uri, grpId: String, onComplete: (String) -> Unit) {
 
@@ -628,6 +690,16 @@ class GroupViewmodel : AuthViewModel() {
             .dispatch()
     }
 
+    private fun updateLastActivity(grpId: String, activityData: GroupActivity) {
+        grpRef.child(grpId).child("activities").child("lastAct")
+            .setValue(activityData)
+            .addOnSuccessListener {
+                Log.d("Success", "Activity added successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Failure", "Failed to add activity: ${e.message}")
+            }
+    }
 
     private fun saveActivityToDatabase(
         grpId: String,
@@ -643,6 +715,26 @@ class GroupViewmodel : AuthViewModel() {
             .addOnFailureListener { e ->
                 Log.e("Failure", "Failed to add activity: ${e.message}")
             }
+    }
+
+    fun getLastActivity(grpId: String, onResult: (GroupActivity?) -> Unit) {
+
+        grpRef.child(grpId).child("activities").child("lastAct")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val lastMsg = snapshot.getValue(GroupActivity::class.java)
+                        onResult(lastMsg)
+                    } else {
+                        onResult(null)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("getLastMessage", "Error fetching last message: ${error.message}")
+                    onResult(null)
+                }
+            })
     }
 
 
@@ -723,10 +815,6 @@ class GroupViewmodel : AuthViewModel() {
         return sdf.format(Date(timestamp))
     }
 
-    //
-    fun leaveGroup(uid: String, grpId: String) {
-
-    }
 
     // find user
 
@@ -756,11 +844,15 @@ class GroupViewmodel : AuthViewModel() {
         userState = UserState.Success(null)
     }
 
-    fun setUserEmpty(txt: String) {
-        user = null
-        userState = UserState.Error(txt)
+    fun emptyGroup() {
+        group = null
+        // groupState = GroupState.Success(grp = null)
     }
 
+
+    fun clearMessage() {
+        _grpActivity.value = emptyList()
+    }
 
     private fun find(search: String, onResult: (UserModel?) -> Unit) {
 
@@ -811,7 +903,7 @@ class GroupViewmodel : AuthViewModel() {
 data class GroupDetails(
     val grpId: String = "",
     val grpName: String = "",
-    val lastActivity: GroupActivity = GroupActivity()
+    var lastActivity: GroupActivity = GroupActivity()
 )
 
 

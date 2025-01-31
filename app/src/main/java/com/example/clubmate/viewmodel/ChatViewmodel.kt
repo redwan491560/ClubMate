@@ -1,10 +1,13 @@
 package com.example.clubmate.viewmodel
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
 import com.example.clubmate.db.UserModel
 import com.example.clubmate.db.UserState
 import com.example.clubmate.screens.MessageStatus
@@ -87,7 +90,7 @@ open class ChatViewModel : AuthViewModel() {
                 chatRef.child(chatId).child("participants").setValue(users).addOnCompleteListener {
                     sendMessage(
                         chatId = chatId,
-                        message = message,
+                        messageText = message,
                         receiverId = receiverId,
                         senderId = senderId
                     )
@@ -100,36 +103,102 @@ open class ChatViewModel : AuthViewModel() {
         }
     }
 
+    private fun saveMessageToDatabase(
+        chatId: String,
+        messageId: String,
+        messageData: Message
+    ) {
+
+        chatRef.child(chatId).child("messages").child(messageId)
+            .setValue(messageData)
+            .addOnSuccessListener {
+                Log.d("Success", "Activity added successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Failure", "Failed to add activity: ${e.message}")
+            }
+    }
+
 
     fun sendMessage(
-        chatId: String, message: String, senderId: String, receiverId: String
+        chatId: String,
+        senderId: String,
+        receiverId: String,
+        messageText: String = "",
+        imageUri: Uri? = null,
     ) {
 
         viewModelScope.launch {
             val messageId = chatRef.child(chatId).push().key ?: return@launch
             val timestamp = System.currentTimeMillis()
 
-            // Create message object
-            val messageData = Message(
-                messageId = messageId,
-                senderId = senderId,
-                receiverId = receiverId,
-                messageText = message,
-                timestamp = timestamp,
-                messageType = MessageType.Text,
-                status = MessageStatus.SENDING
-            )
-
-            chatRef.child(chatId).child("messages").child(messageId).setValue(messageData)
-                .addOnSuccessListener {
-                    Log.d("send from", "sendMessage: $senderId")
+            if (imageUri != null) {
+                // If an image is present, upload and then proceed
+                uploadImageToStorage(imageUri, chatId) { imageUrl ->
+                    val messageData = Message(
+                        messageId = messageId,
+                        senderId = senderId,
+                        receiverId = receiverId,
+                        messageText = "",
+                        imageRef = imageUrl,
+                        timestamp = timestamp,
+                        messageType = MessageType.Text,
+                        status = MessageStatus.SENDING
+                    )
+                    saveMessageToDatabase(chatId, messageId, messageData)
                     updateLastMessage(chatId, messageData)
-                }.addOnFailureListener { exception ->
-                    Log.d("Message Failed", "sendMessage: ${exception.message}")
                 }
+            } else {
+                val messageData = Message(
+                    messageId = messageId,
+                    senderId = senderId,
+                    receiverId = receiverId,
+                    messageText = messageText,
+                    imageRef = "",
+                    timestamp = timestamp,
+                    messageType = MessageType.Text,
+                    status = MessageStatus.SENDING
+                )
+                saveMessageToDatabase(chatId, messageId, messageData)
+                updateLastMessage(chatId, messageData)
+
+            }
+
         }
     }
 
+    private fun uploadImageToStorage(imageUri: Uri, chatId: String, onComplete: (String) -> Unit) {
+
+        val requestId = MediaManager.get().upload(imageUri)
+            .option("folder", "group_images/$chatId") // Store images inside "group_images/{grpId}"
+            .callback(object : com.cloudinary.android.callback.UploadCallback {
+                override fun onStart(requestId: String?) {
+                    Log.d("Cloudinary", "Upload started")
+                }
+
+                override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
+                    Log.d("Cloudinary", "Uploading: $bytes/$totalBytes")
+                }
+
+                override fun onSuccess(requestId: String?, resultData: MutableMap<Any?, Any?>?) {
+                    val imageUrl = resultData?.get("secure_url") as? String
+                    if (imageUrl != null) {
+                        onComplete(imageUrl) // Pass the Cloudinary image URL to save in the database
+                    }
+                }
+
+                override fun onError(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled")
+
+                }
+
+                override fun onReschedule(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled")
+
+                }
+            })
+            .dispatch()
+    }
 
     private fun updateLastMessage(chatId: String, messageData: Message) {
         chatRef.child(chatId).child("msg").child("last").setValue(messageData)
@@ -217,7 +286,7 @@ open class ChatViewModel : AuthViewModel() {
 
 
     fun convertTimestampToDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        val sdf = SimpleDateFormat("hh:mm a  dd/MM/yyyy", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
 
@@ -283,6 +352,7 @@ open class ChatViewModel : AuthViewModel() {
                                     newChat.lastMessage = it
                                 }
                             }
+
                             getParticipants(chatId) { prt ->
                                 newChat.participants = prt
                             }
@@ -357,7 +427,7 @@ open class ChatViewModel : AuthViewModel() {
         }
     }
 
-    fun getLastMessage(chatId: String, onResult: (Message?) -> Unit) {
+    private fun getLastMessage(chatId: String, onResult: (Message?) -> Unit) {
 
         chatRef.child(chatId).child("msg").child("last")
             .addValueEventListener(object : ValueEventListener {

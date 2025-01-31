@@ -1,16 +1,19 @@
-package com.example.clubmate.util.chat
+package com.example.clubmate.util.group
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,61 +35,58 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.clubmate.R
-import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.ui.theme.roboto
-
+import com.example.clubmate.viewmodel.GroupActivity
 
 @Composable
-fun MessageItem(
-    message: Message,
+fun GroupActivityDesign(
+    activity: GroupActivity,
+    sender: String,
     isSent: Boolean,
-    time: String = "",
-    status: MessageStatus = MessageStatus.SENDING,
-    onDeleteMessage: (Message) -> Unit
+    sentTime: String,
+    sentDate: String,
+    onDeleteMessage: (GroupActivity) -> Unit
 ) {
 
-
-    var isSelected by remember {
-        mutableStateOf(false)
-    }
-
+    var isSelected by remember { mutableStateOf(false) }
 
     val bgColor by remember {
-        mutableStateOf(
-            if (isSent) Color(0xFFD5F1C4) else Color(0xBFF1D4D4)
-        )
+        mutableStateOf(if (isSent) Color(0xFFD5F1C4) else Color(0xBFF1D4D4))
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = if (isSent) Alignment.CenterEnd else Alignment.CenterStart
+        modifier = Modifier.fillMaxWidth(), contentAlignment = if (isSent) Alignment.CenterEnd
+        else Alignment.CenterStart
     ) {
         Row(
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = if (isSent) Arrangement.End else Arrangement.Start
         ) {
             Column(
                 horizontalAlignment = if (isSent) Alignment.End else Alignment.Start
             ) {
+                Text(
+                    text = sender, fontSize = 12.sp, fontFamily = roboto,
+                    modifier = Modifier
+                        .widthIn(max = 280.dp)
+                        .padding(end = if (isSent) 5.dp else 0.dp),
+                    color = Color.Black
+                )
                 Row(
                     verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(bgColor)
-                        .padding(vertical = 6.dp, horizontal = 4.dp)
+                        .padding(4.dp)
                         .pointerInput(Unit) {
                             detectTapGestures(
-                                onLongPress = {
-                                    if (isSent) isSelected = true
-                                },
-                                onTap = {
-                                    if (isSelected) isSelected = false
-                                }
-                            )
+                                onLongPress = { if (isSent) isSelected = true },
+                                onTap = { if (isSelected) isSelected = false })
                         },
                 ) {
-                    if (message.imageRef.isNotEmpty()) {
+                    if (activity.message.imageRef.isNotEmpty()) {
                         // Display Image with preloading and caching
-                        Box(modifier = Modifier.size(250.dp), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.size(300.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -95,72 +95,54 @@ fun MessageItem(
                                 strokeWidth = 4.dp
                             )
                             AsyncImage(
-                                model = message.imageRef,
+                                model = activity.message.imageRef,
                                 contentDescription = "Sent Image",
-                                contentScale = ContentScale.Crop,
+                                contentScale = ContentScale.FillHeight,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .size(200.dp)
+                                    .size(300.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                                 error = painterResource(id = R.drawable.add_24px) // Error Image
                             )
                         }
                     } else {
+                        // Display Text
                         Text(
-                            text = message.messageText,
+                            text = activity.message.messageText,
                             fontSize = 16.sp,
                             fontFamily = roboto,
+                            color = Color.Black,
                             modifier = Modifier
-                                .padding(horizontal = 10.dp)
-                                .widthIn(max = 280.dp),
-                            color = Color.Black
+                                .padding(horizontal = 15.dp)
+                                .widthIn(max = 280.dp)
                         )
                     }
-
                 }
-                Text(
-                    text = time, fontFamily = roboto,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(
-                        end = if (isSent) 5.dp else 0.dp,
+                Row(
+                    horizontalArrangement = if (isSent) Arrangement.End else Arrangement.Start,
+                    modifier = Modifier.padding(end = if (isSent) 5.dp else 0.dp)
+                ) {
+                    Text(
+                        text = sentTime, fontFamily = roboto, fontSize = 10.sp
                     )
-                )
-            }
-            if (isSent) {
-                AnimatedVisibility(isSelected) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.delete_msg),
-                        contentDescription = "Delete Item",
-                        modifier = Modifier
-                            .padding(bottom = 20.dp, start = 5.dp)
-                            .size(30.dp)
-                            .clickable {
-                                onDeleteMessage(message)
-                            })
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = sentDate, fontFamily = roboto, fontSize = 10.sp
+                    )
                 }
             }
-        }
-
-    }
-}
-
-
-fun checkFilterStatus(status: MessageStatus): Color {
-    return when (status) {
-        MessageStatus.SEEN -> {
-            Color.Blue
-        }
-
-        MessageStatus.DELIVERED -> {
-            Color.Black
-        }
-
-        MessageStatus.SENDING -> {
-            Color(0xD3928888)
-        }
-
-        else -> {
-            Color(0xBF6F4D4D)
+            AnimatedVisibility(isSelected) {
+                Icon(painter = painterResource(id = R.drawable.delete_msg),
+                    contentDescription = "Delete Item",
+                    modifier = Modifier
+                        .padding(bottom = 20.dp, start = 5.dp)
+                        .size(30.dp)
+                        .clickable {
+                            onDeleteMessage(activity)
+                        })
+            }
         }
     }
 }
+
+

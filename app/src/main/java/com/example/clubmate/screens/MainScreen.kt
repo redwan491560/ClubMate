@@ -77,8 +77,8 @@ import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.ItemDesignAlert
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.util.chat.ChatsDesign
-import com.example.clubmate.util.group.GroupDesign
 import com.example.clubmate.util.getInternetConnectionStatus
+import com.example.clubmate.util.group.GroupDesign
 import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.ChatViewModel
 import com.example.clubmate.viewmodel.GroupViewmodel
@@ -113,6 +113,7 @@ fun MainScreen(
 
     // returns the searched user
     val user = chatViewmodel.user
+    val group = grpViewmodel.group
 
     val chips = listOf("contacts", "groups")
     var chipsState by remember { mutableIntStateOf(0) }
@@ -623,18 +624,18 @@ fun MainScreen(
                                             if (query.isBlank()) {
                                                 chatViewmodel.setUserEmpty("Input is empty")
                                             } else {
-
                                                 currentUser.value?.uid?.let { uid ->
-                                                    user?.let { user ->
-                                                        if (user.uid.isNotEmpty()) {
-
-
-                                                            // Reset states after initiating chat
+                                                    grpViewmodel.joinGroup(
+                                                        grpId = query,
+                                                        uid = uid
+                                                    ) {
+                                                        if (it) {
                                                             grpState = false
                                                             query = ""
                                                             chatViewmodel.emptyUser()
                                                         }
                                                     }
+
                                                 }
                                             }
                                         },
@@ -691,9 +692,9 @@ fun MainScreen(
 
                                         receiver?.username?.let { it1 ->
                                             item.lastMessage?.let { it2 ->
-
                                                 ChatsDesign(
                                                     reciever = it1,
+                                                    uri = it2.imageRef,
                                                     lastMessage = it2.messageText
                                                 ) {
                                                     navController.navigate(
@@ -717,7 +718,9 @@ fun MainScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                items(groupsList.value) { item ->
+                                items(groupsList.value.sortedByDescending {
+                                    it.lastActivity.message.timestamp
+                                }) { item ->
                                     currentUserId?.let {
                                         GroupDesign(
                                             grpName = item.grpName,
