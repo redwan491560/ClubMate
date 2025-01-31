@@ -1,14 +1,20 @@
 package com.example.clubmate.viewmodel
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.UserModel
 import com.example.clubmate.db.UserState
+import com.example.clubmate.util.Category
+import com.example.clubmate.util.group.GroupMessage
+import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -544,59 +550,176 @@ class GroupViewmodel : AuthViewModel() {
             })
     }
 
-    // message handling functions
+    // activities
 
-    fun addActivity(grpId: String, senderId: String, activity: GroupActivity) {
+    fun addActivity(
+        grpId: String,
+        senderId: String,
+        messageText: String = "",
+        imageUri: Uri? = null
+    ) {
 
         viewModelScope.launch {
             val messageId = grpRef.child(grpId).push().key ?: return@launch
-
             val timestamp = System.currentTimeMillis()
-            val activityData = GroupActivity(
-                senderId = senderId, message = GroupMessage(
-                    timestamp = timestamp,
-                    messageId = messageId,
-                    senderId = activity.senderId,
-                    messageText = activity.message.messageText
-                )
-            )
-            grpRef.child(grpId).child("activities").child(activity.message.messageId)
-                .setValue(activityData).addOnCompleteListener {
-                    Log.d("add succ", "addActivity: success")
-                }.addOnFailureListener {
-                    Log.d("add failed", "addActivity: failed")
+
+            if (imageUri != null) {
+                // If an image is present, upload and then proceed
+                uploadImageToStorage(imageUri, grpId) { imageUrl ->
+                    val activityData = GroupActivity(
+                        message = GroupMessage(
+                            timestamp = timestamp,
+                            messageId = messageId,
+                            imageRef = imageUrl,  // Store the uploaded image URL
+                            senderId = senderId,
+                            messageText = "" // No text since it's an image message
+                        ),
+                        type = GroupActivityType.Image
+                    )
+                    saveActivityToDatabase(grpId, messageId, activityData)
                 }
+            } else {
+                // Text message scenario
+                val activityData = GroupActivity(
+                    message = GroupMessage(
+                        timestamp = timestamp,
+                        messageId = messageId,
+                        imageRef = "",  // No image
+                        senderId = senderId,
+                        messageText = messageText
+                    ),
+                    type = GroupActivityType.Text
+                )
+                saveActivityToDatabase(grpId, messageId, activityData)
+            }
         }
     }
 
-    fun loadAllActivity(grpId: String) {
+    private fun uploadImageToStorage(imageUri: Uri, grpId: String, onComplete: (String) -> Unit) {
 
-        viewModelScope.launch {
-            grpRef.child(grpId).addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
+        val requestId = MediaManager.get().upload(imageUri)
+            .option("folder", "group_images/$grpId") // Store images inside "group_images/{grpId}"
+            .callback(object : com.cloudinary.android.callback.UploadCallback {
+                override fun onStart(requestId: String?) {
+                    Log.d("Cloudinary", "Upload started")
+                }
 
+                override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
+                    Log.d("Cloudinary", "Uploading: $bytes/$totalBytes")
+                }
+
+                override fun onSuccess(requestId: String?, resultData: MutableMap<Any?, Any?>?) {
+                    val imageUrl = resultData?.get("secure_url") as? String
+                    if (imageUrl != null) {
+                        onComplete(imageUrl) // Pass the Cloudinary image URL to save in the database
+                    }
+                }
+
+                override fun onError(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled")
+
+                }
+
+                override fun onReschedule(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled")
+
+                }
+            })
+            .dispatch()
+    }
+
+
+    private fun saveActivityToDatabase(
+        grpId: String,
+        messageId: String,
+        activityData: GroupActivity
+    ) {
+
+        grpRef.child(grpId).child("activities").child(messageId)
+            .setValue(activityData)
+            .addOnSuccessListener {
+                Log.d("Success", "Activity added successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Failure", "Failed to add activity: ${e.message}")
+            }
+    }
+
+
+    fun loadActivities(grpId: String) {
+
+        grpRef.child(grpId).child("activities")
+            .addChildEventListener(object : ChildEventListener {
+                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                    val activity = snapshot.getValue(GroupActivity::class.java)
+                    activity?.let {
+                        val updatedActivities = _grpActivity.value.toMutableList()
+                        if (updatedActivities.none { existingActivity ->
+                                existingActivity.message.timestamp == it.message.timestamp
+                            }) {
+                            updatedActivities.add(it)
+                            _grpActivity.value = updatedActivities
+                        }
+                    }
+                }
+
+                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                    val updatedActivity = snapshot.getValue(GroupActivity::class.java)
+                    updatedActivity?.let {
+                        val activitiesList = _grpActivity.value.toMutableList()
+                        val index = activitiesList.indexOfFirst { existingActivity ->
+                            existingActivity.message.timestamp == it.message.timestamp
+                        }
+                        if (index >= 0) {
+                            activitiesList[index] = it
+                            _grpActivity.value = activitiesList
+                        }
+                    }
+                }
+
+                override fun onChildRemoved(snapshot: DataSnapshot) {
+                    val removedActivity = snapshot.getValue(GroupActivity::class.java)
+                    removedActivity?.let {
+                        val activitiesList = _grpActivity.value.toMutableList()
+                        activitiesList.removeIf { activity ->
+                            activity.message.timestamp == removedActivity.message.timestamp
+                        }
+                        _grpActivity.value = activitiesList
+                    }
+                }
+
+                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+                    Log.d("TAG", "onChildMoved: Activity moved")
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Log.d("TAG", "onCancelled: ")
-
+                    Log.e("TAG", "Error loading activities: ${error.message}")
                 }
-
             })
-        }
-
     }
+
 
     fun removeActivity(activity: GroupActivity) {
 
     }
+
 
     private fun generateUniqueId(): String {
         return UUID.randomUUID().toString().replace("-", "").take(20)
     }
 
     fun convertTimestampToDate(timestamp: Long): String {
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        return sdf.format(Date(timestamp))
+    }
+
+    fun convertTimestamp(timestamp: Long): String {
         val sdf = SimpleDateFormat("hh:mm a  dd/MM/yyyy", Locale.getDefault())
+        return sdf.format(Date(timestamp))
+    }
+
+    fun convertTimestampToTime(timestamp: Long): String {
+        val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
 
@@ -691,26 +814,14 @@ data class GroupDetails(
     val lastActivity: GroupActivity = GroupActivity()
 )
 
-enum class Category {
-    Admin, General, President, VicePresident, Treasurer,
-}
-
 
 enum class GroupActivityType {
-    Post, Poll, Audio, Video, Notice,
+    Image, Text
 }
 
 data class GroupActivity(
-    val type: GroupActivityType = GroupActivityType.Post,
-    val message: GroupMessage = GroupMessage(),
-    val senderId: String = ""
-)
-
-data class GroupMessage(
-    val messageId: String = "",
-    val senderId: String = "",
-    val messageText: String = "",
-    val timestamp: Long = 0
+    val type: GroupActivityType = GroupActivityType.Text,
+    val message: GroupMessage = GroupMessage()
 )
 
 data class UserJoinDetails(

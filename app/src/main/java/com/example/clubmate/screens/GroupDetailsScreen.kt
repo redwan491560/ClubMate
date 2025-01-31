@@ -217,7 +217,7 @@ fun GroupDetailsScreen(
                 }
                 DetailsIconDesign(
                     tag = "created at",
-                    value = grpViewModel.convertTimestampToDate(grpDetails.createdAt)
+                    value = grpViewModel.convertTimestamp(grpDetails.createdAt)
                 ) {}
 
             }

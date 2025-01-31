@@ -44,7 +44,7 @@ import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.ItemDesignAlert
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.util.MemberDesign
+import com.example.clubmate.util.group.MemberDesign
 import com.example.clubmate.viewmodel.GroupViewmodel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -61,8 +61,9 @@ fun ViewAllParticipants(
     val scrollState = rememberLazyListState()
     var query by remember { mutableStateOf("") }
 
-    var grpDetails = Routes.GrpDetails()
-    LaunchedEffect(grpInfo.grpId) {
+    var grpDetails by remember { mutableStateOf(Routes.GrpDetails()) }
+
+    LaunchedEffect(Unit) {
         grpViewmodel.loadGroupInfo(grpId = grpInfo.grpId) {
             it?.let {
                 grpDetails = it
@@ -124,7 +125,7 @@ fun ViewAllParticipants(
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(onDone = {
-                                // search member in the grpref
+                        // search member in the grpref
                     })
                 )
                 Image(painter = painterResource(id = R.drawable.search),
@@ -147,7 +148,7 @@ fun ViewAllParticipants(
 
             LazyColumn(state = scrollState) {
                 items(membersList.value) { item ->
-                    MemberDesign(item, grpViewmodel.convertTimestampToDate(item.joinData)) {
+                    MemberDesign(item, grpViewmodel.convertTimestamp(item.joinData)) {
                         currentUser.value?.uid?.let {
                             navController.navigate(
                                 Routes.GroupUserDetails(

@@ -1,4 +1,4 @@
-package com.example.clubmate.util
+package com.example.clubmate.util.group
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
-import com.example.clubmate.viewmodel.Category
+import com.example.clubmate.util.Category
 import com.example.clubmate.viewmodel.UserJoinDetails
 
 @Composable

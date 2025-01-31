@@ -76,8 +76,8 @@ import com.example.clubmate.ui.theme.Composables.Companion.NavigationBarIcon
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.ItemDesignAlert
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.util.ChatsDesign
-import com.example.clubmate.util.GroupDesign
+import com.example.clubmate.util.chat.ChatsDesign
+import com.example.clubmate.util.group.GroupDesign
 import com.example.clubmate.util.getInternetConnectionStatus
 import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.ChatViewModel

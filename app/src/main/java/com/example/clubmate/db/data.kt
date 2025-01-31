@@ -1,6 +1,5 @@
 package com.example.clubmate.db
 
-import com.example.clubmate.screens.MessageStatus
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -121,20 +120,6 @@ class Routes {
 }
 
 
-data class Message(
-    val messageId: String = "",
-    val senderId: String = "",
-    val receiverId: String = "",
-    val messageText: String = "",
-    val timestamp: Long = 0,
-    val status: MessageStatus = MessageStatus.SENDING,
-    val messageType: MessageType = MessageType.Text
-)
-
-
-enum class MessageType {
-    Text, Audio, Video
-}
 
 
 sealed class UserState {

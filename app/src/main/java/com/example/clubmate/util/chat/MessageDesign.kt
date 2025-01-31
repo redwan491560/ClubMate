@@ -1,4 +1,4 @@
-package com.example.clubmate.util
+package com.example.clubmate.util.chat
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -30,7 +30,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.clubmate.R
-import com.example.clubmate.db.Message
 import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.ui.theme.roboto
 
@@ -43,6 +42,7 @@ fun MessageItem(
     status: MessageStatus = MessageStatus.SENDING,
     onDeleteMessage: (Message) -> Unit
 ) {
+
     val src = if (status == MessageStatus.FAILED) R.drawable.failed
     else R.drawable.status
 

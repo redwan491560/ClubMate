@@ -5,11 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
-import com.example.clubmate.db.Message
-import com.example.clubmate.db.MessageType
 import com.example.clubmate.db.UserModel
 import com.example.clubmate.db.UserState
 import com.example.clubmate.screens.MessageStatus
+import com.example.clubmate.util.MessageType
+import com.example.clubmate.util.chat.Message
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -137,6 +137,7 @@ open class ChatViewModel : AuthViewModel() {
                 Log.e("Message", "Error updating last message")
             }
     }
+
 
     fun receiveMessage(chatId: String) {
 

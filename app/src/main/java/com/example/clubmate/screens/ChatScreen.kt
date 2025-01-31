@@ -1,6 +1,5 @@
 package com.example.clubmate.screens
 
-import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
@@ -39,21 +38,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.util.MessageItem
+import com.example.clubmate.util.chat.MessageItem
 import com.example.clubmate.viewmodel.ChatViewModel
 import com.example.clubmate.viewmodel.MainViewmodel
 
@@ -82,6 +80,8 @@ fun ChatScreen(
             listState.animateScrollToItem(messages.size - 1)
         }
     }
+
+
     LaunchedEffect(Unit) {
         listState.interactionSource
     }
@@ -98,32 +98,15 @@ fun ChatScreen(
         }
     }
 
-    var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
+    var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val openGalleryLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
             uri?.let {
-                // Set the selected image URI
                 selectedImageUri = it
             }
         }
 
-    val requestPermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                // If permission is granted, open the gallery
-                openGalleryLauncher.launch("image/*")
-            } else {
-                Toast.makeText(
-                    context, "Permission denied to read your External storage", Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-    // Check permission status for READ_EXTERNAL_STORAGE
-    val permissionStatus = ContextCompat.checkSelfPermission(
-        LocalContext.current, READ_EXTERNAL_STORAGE
-    )
 
     BackHandler {
         chatViewmodel.emptyUser()
@@ -213,15 +196,63 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start
             ) {
                 selectedImageUri?.let { uri ->
-                    Image(
-                        painter = rememberAsyncImagePainter(uri),
-                        contentDescription = "Selected Image",
+
+
+                    Row(
                         modifier = Modifier
-                            .padding(bottom = 3.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 0.dp, vertical = 6.dp)
                             .clip(RoundedCornerShape(8.dp, 8.dp, 0.dp, 0.dp))
-                            .width(120.dp)
-                    )
+                            .background(Color(0xFF3A4233)),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(8f),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(uri),
+                                contentDescription = "Selected Image",
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .width(250.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(top = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.edit_button),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(top = 5.dp, end = 5.dp, bottom = 5.dp)
+                                    .size(23.dp),
+                                colorFilter = ColorFilter.tint(Color(0xFFF0F0D3))
+                            )
+                            Image(
+                                painter = painterResource(id = R.drawable.delete_msg),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(top = 5.dp, end = 5.dp)
+                                    .size(40.dp)
+                                    .clickable {
+                                        selectedImageUri = null
+                                    },
+                                colorFilter = ColorFilter.tint(
+                                    Color(0xFFF0F0D3)
+                                )
+                            )
+                        }
+                    }
+
                 }
+
                 OutlinedTextField(value = text,
                     onValueChange = { text = it },
                     shape = RoundedCornerShape(0.dp, 0.dp, 6.dp, 6.dp),
@@ -232,15 +263,9 @@ fun ChatScreen(
                             modifier = Modifier
                                 .size(30.dp)
                                 .clickable {
-                                    // Check permission status here
-                                    if (permissionStatus == PermissionChecker.PERMISSION_GRANTED) {
-                                        // If permission is granted, launch the gallery
-                                        openGalleryLauncher.launch("image/*")
-                                    } else {
-                                        // Request permission if not granted
-                                        requestPermissionLauncher.launch(READ_EXTERNAL_STORAGE)
-                                    }
-                                })
+                                    openGalleryLauncher.launch("image/*")
+                                }
+                        )
                     },
                     trailingIcon = {
                         Image(painter = painterResource(id = R.drawable.send_24px),
@@ -251,6 +276,7 @@ fun ChatScreen(
                                     val uid = currentUser?.uid
                                     if (uid != null) {
                                         val sentMessage = text.trim()
+                                        selectedImageUri = null
                                         if (sentMessage.isNotEmpty()) {
                                             chatViewmodel.sendMessage(
                                                 chatId = userModel.chatID,
@@ -262,8 +288,6 @@ fun ChatScreen(
                                         } else {
                                             launchToast(context, "Message cannot be empty")
                                         }
-                                    } else {
-                                        navController.navigate(Routes.Login)
                                     }
                                 })
                     },
@@ -279,8 +303,9 @@ fun ChatScreen(
                         )
                     })
             }
-
         }) {
+
+
         Column(
             modifier = Modifier
                 .fillMaxSize()

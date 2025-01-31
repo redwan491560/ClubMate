@@ -22,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,17 +37,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.screens.launchToast
-import com.example.clubmate.ui.theme.Composables
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.ItemDesignAlert
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.viewmodel.Category
+import com.example.clubmate.util.Category
 import com.example.clubmate.viewmodel.GroupViewmodel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -62,11 +59,17 @@ fun AddParticipants(
     val user = grpViewmodel.user
     var query by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        // load all participants
-
+    var grpDetails by remember {
+        mutableStateOf(Routes.GrpDetails())
     }
 
+    LaunchedEffect(Unit) {
+        grpViewmodel.loadGroupInfo(grpId = grpInfo.grpId) {
+            it?.let {
+                grpDetails = it
+            }
+        }
+    }
 
     // add user to the group
 
@@ -84,7 +87,7 @@ fun AddParticipants(
                 .padding(top = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TextDesign(text = "Add Members to grpname", size = 17)
+            TextDesign(text = "Add Members to ${grpDetails.grpName}", size = 17)
             Spacer(modifier = Modifier.height(20.dp))
             Box(
                 modifier = Modifier
@@ -132,32 +135,28 @@ fun AddParticipants(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding( top = 10.dp),
+                    .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                Button(onClick = {
-                    user?.email?.let {
-                        grpViewmodel.addParticipants(
-                            grpId = grpInfo.grpId,
-                            email = user.email, category = Category.General
-                        )
-                    }
-                    launchToast(context = context, "participant added successfully")
-                    query = ""
-                    grpViewmodel.emptyUser()
-                }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(Color(0xFFBBF7B1))) {
+                Button(
+                    onClick = {
+                        user?.email?.let {
+                            grpViewmodel.addParticipants(
+                                grpId = grpInfo.grpId,
+                                email = user.email,
+                                category = Category.General
+                            )
+                        }
+                        launchToast(context = context, "participant added successfully")
+                        query = ""
+                        grpViewmodel.emptyUser()
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(Color(0xFFBBF7B1))
+                ) {
                     TextDesign(text = "Add participant")
-
                 }
             }
         }
     }
-
-
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun Hdgf() {
-    // AddParticipants(grpId = Routes.AddUserToGroup("kekjhjhfdjf"))
 }

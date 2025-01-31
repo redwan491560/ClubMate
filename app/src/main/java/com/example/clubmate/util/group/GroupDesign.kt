@@ -1,4 +1,4 @@
-package com.example.clubmate.util
+package com.example.clubmate.util.group
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column

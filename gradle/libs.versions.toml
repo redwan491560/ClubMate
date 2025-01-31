@@ -13,20 +13,19 @@ navigationCompose = "2.8.3"
 googleGmsGoogleServices = "4.4.2"
 firebaseAuth = "23.1.0"
 playServicesAuth = "21.2.0"
-roomCompiler = "2.6.1"
-roomKtx = "2.6.1"
-roomRuntime = "2.6.1"
+
 runtimeLivedata = "1.7.5"
 firebaseFirestoreKtx = "25.1.1"
 firebaseDatabaseKtx = "21.0.0"
 firebaseDatabase = "21.0.0"
 firebaseCrashlyticsBuildtools = "3.0.2"
+firebaseStorageKtx = "21.0.1"
+firebaseAppdistributionGradle = "5.1.0"
 
 
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -48,9 +47,10 @@ androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtim
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
+firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
+firebase-appdistribution-gradle = { group = "com.google.firebase", name = "firebase-appdistribution-gradle", version.ref = "firebaseAppdistributionGradle" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

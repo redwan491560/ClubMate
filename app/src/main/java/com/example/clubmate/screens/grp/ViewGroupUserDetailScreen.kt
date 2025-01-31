@@ -51,7 +51,7 @@ import com.example.clubmate.db.Routes
 import com.example.clubmate.screens.launchToast
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.viewmodel.Category
+import com.example.clubmate.util.Category
 import com.example.clubmate.viewmodel.GroupViewmodel
 import com.example.clubmate.viewmodel.UserJoinDetails
 
@@ -223,13 +223,14 @@ fun ViewGroupUserDetailScreen(
                                 scrollState = rememberScrollState()
                             ) {
                                 categoryList.forEachIndexed { index, cat ->
-                                    DropdownMenuItem(text = {
-                                        Text(
-                                            text = cat.toString(),
-                                            fontFamily = roboto,
-                                            fontSize = 16.sp
-                                        )
-                                    },
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = cat.toString(),
+                                                fontFamily = roboto,
+                                                fontSize = 16.sp
+                                            )
+                                        },
                                         onClick = {
                                             selectedCategory = categoryList[index]
                                             expanded = false // Close dropdown after selection
@@ -313,7 +314,7 @@ fun ViewGroupUserDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextDesign(text = "joined: " + grpViewmodel.convertTimestampToDate(user.joinData))
+                        TextDesign(text = "joined: " + grpViewmodel.convertTimestamp(user.joinData))
                         Image(painter = painterResource(id = R.drawable.delete_msg),
                             contentDescription = null,
                             Modifier

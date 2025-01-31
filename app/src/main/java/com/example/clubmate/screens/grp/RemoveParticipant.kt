@@ -57,11 +57,17 @@ fun RemoveParticipant(grpInfo: Routes.RemoveUserFromGroup, grpViewmodel: GroupVi
     val user = grpViewmodel.user
     var query by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        // load all participants
-
+    var grpDetails by remember {
+        mutableStateOf(Routes.GrpDetails())
     }
 
+    LaunchedEffect(Unit) {
+        grpViewmodel.loadGroupInfo(grpId = grpInfo.grpId) {
+            it?.let {
+                grpDetails = it
+            }
+        }
+    }
 
     // add user to the group
 
@@ -79,7 +85,7 @@ fun RemoveParticipant(grpInfo: Routes.RemoveUserFromGroup, grpViewmodel: GroupVi
                 .padding(top = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TextDesign(text = "Remove Members from grpname", size = 17)
+            TextDesign(text = "Remove Members from ${grpDetails.grpName}", size = 17)
             Spacer(modifier = Modifier.height(20.dp))
             Box(
                 modifier = Modifier
