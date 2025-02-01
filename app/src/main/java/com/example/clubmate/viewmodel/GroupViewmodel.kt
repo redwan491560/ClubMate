@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
+import com.example.clubmate.db.GroupState
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.UserModel
 import com.example.clubmate.db.UserState
@@ -34,14 +35,16 @@ class GroupViewmodel : AuthViewModel() {
     private val userRef = _db.getReference("user")
 
 
-    // searched user
+    // searched user or group
     var userState by mutableStateOf<UserState>(UserState.Success(null))
+        private set
+    var groupState by mutableStateOf<GroupState>(GroupState.Success(null))
         private set
 
 
     // fetches he searched result
     var user by mutableStateOf<UserModel?>(UserModel())
-    var group by mutableStateOf<GroupDetails?>(GroupDetails())
+    var group by mutableStateOf<Routes.GrpDetails?>(Routes.GrpDetails())
 
 
     private val _groupsList = MutableStateFlow<List<GroupDetails>>(emptyList())
@@ -338,14 +341,35 @@ class GroupViewmodel : AuthViewModel() {
 
     fun joinGroup(uid: String, grpId: String, onComplete: (Boolean) -> Unit) {
 
-        grpRef.child(grpId).get().addOnSuccessListener {
-            if (it.exists()) {
+        grpRef.child(grpId).get().addOnSuccessListener { groupSnapshot ->
+            if (groupSnapshot.exists()) {
                 fetchUserDetailsByUid(uid) { userModel ->
                     if (userModel != null) {
                         addParticipants(
                             grpId = grpId, email = userModel.email,
                             category = Category.General
                         )
+
+                        // Fetch updated group details
+                        grpRef.child(grpId).child("grpInfo")
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(snapshot: DataSnapshot) {
+                                    if (snapshot.exists()) {
+                                        val groupDetails =
+                                            snapshot.getValue(GroupDetails::class.java)
+                                        groupDetails?.let { newGroup ->
+                                            updateGroupList(newGroup)
+                                        }
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    Log.e(
+                                        "joinGroup",
+                                        "Error fetching group details: ${error.message}"
+                                    )
+                                }
+                            })
                         onComplete(true)
                     } else {
                         onComplete(false)
@@ -358,6 +382,21 @@ class GroupViewmodel : AuthViewModel() {
             onComplete(false)
         }
     }
+
+
+    private fun updateGroupList(newGroup: GroupDetails) {
+        val currentList = _groupsList.value.toMutableList()
+
+        val index = currentList.indexOfFirst { it.grpId == newGroup.grpId }
+        if (index != -1) {
+            currentList[index] = newGroup // Update existing entry
+        } else {
+            currentList.add(newGroup) // Add new group
+        }
+
+        _groupsList.value = currentList
+    }
+
 
     fun leaveGroup(uid: String, grpId: String) {
 
@@ -816,6 +855,64 @@ class GroupViewmodel : AuthViewModel() {
     }
 
 
+    // find group
+
+
+    fun findGroup(search: String) {
+        if (search.isEmpty()) {
+            groupState = GroupState.Error("Query cannot be empty")
+            return
+        }
+
+        groupState = GroupState.Loading
+        viewModelScope.launch {
+            findGrp(search) { result ->
+                if (result != null) {
+                    group = result
+                    groupState = GroupState.Success(result)
+                } else {
+                    groupState = GroupState.Error("User not found")
+                }
+            }
+        }
+    }
+
+    // find group result
+    private fun findGrp(search: String, onResult: (Routes.GrpDetails?) -> Unit) {
+
+        grpRef.child(search)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        grpRef.child(search).child("grpInfo").get().addOnSuccessListener {
+                            if (it.exists()) {
+                                val info = it.getValue(Routes.GrpDetails::class.java)
+                                onResult(info)
+                            } else {
+                                groupState = GroupState.Error("group details not available")
+                                onResult(null)
+                            }
+                        }
+
+                    } else {
+                        groupState = GroupState.Error("user not found")
+                        onResult(null)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    groupState = GroupState.Error(error.message)
+                    onResult(null)
+                }
+            })
+    }
+
+
+    fun emptyGroup(text: String = "") {
+        group = null
+        groupState = GroupState.Error(text)
+    }
+
     // find user
 
 
@@ -842,11 +939,6 @@ class GroupViewmodel : AuthViewModel() {
     fun emptyUser() {
         user = null
         userState = UserState.Success(null)
-    }
-
-    fun emptyGroup() {
-        group = null
-        // groupState = GroupState.Success(grp = null)
     }
 
 

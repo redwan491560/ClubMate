@@ -127,6 +127,12 @@ sealed class UserState {
     data class Error(val msg: String) : UserState()
 }
 
+sealed class GroupState {
+    data object Loading : GroupState()
+    data class Success(val group: Routes.GrpDetails?) : GroupState()
+    data class Error(val msg: String) : GroupState()
+}
+
 
 sealed class Status {
     data object Authenticated : Status()

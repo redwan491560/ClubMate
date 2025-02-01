@@ -26,9 +26,11 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.clubmate.R
+import com.example.clubmate.db.GroupState
 import com.example.clubmate.db.UserState
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import java.util.Locale
@@ -236,10 +238,11 @@ fun ItemDesignAlert(userState: UserState) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         border = BorderStroke(0.5.dp, Color(0xFF493101)),
-                        colors = CardDefaults.cardColors(Color(0xFFF5E3C1))
+                        colors = CardDefaults.cardColors(Color(0xFFEDF3E1))
                     ) {
                         Column(
-                            modifier = Modifier.padding(10.dp, 5.dp)
+                            modifier = Modifier.padding(10.dp, 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             TextDesign(
                                 text = "user:  " + it.username.replaceFirstChar {
@@ -269,3 +272,65 @@ fun ItemDesignAlert(userState: UserState) {
         }
     }
 }
+
+
+@Composable
+fun ItemDesignGroupAlert(groupState: GroupState) {
+    when (groupState) {
+        GroupState.Loading -> {
+            Row(
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                LinearProgressIndicator(strokeCap = ProgressIndicatorDefaults.LinearStrokeCap)
+            }
+        }
+
+        is GroupState.Success -> {
+            val group = groupState.group
+            group?.let {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(0.5.dp, Color(0xFF493101)),
+                        colors = CardDefaults.cardColors(Color(0xFFEDF3E1))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp, 8.dp),
+                        ) {
+                            TextDesign(
+                                text = "Name:  " + it.grpName.replaceFirstChar {
+                                    if (it.isLowerCase()) it.titlecase(Locale.ROOT)
+                                    else it.toString()
+                                },
+                                size = 18
+                            )
+                            Text(
+                                text = it.description,
+                                fontSize = 16.sp,
+                                maxLines = 1,
+                                fontFamily = roboto, overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        is GroupState.Error -> {
+            Row(modifier = Modifier.padding(top = 8.dp, start = 8.dp)) {
+                TextDesign(text = groupState.msg)
+            }
+        }
+    }
+}
+

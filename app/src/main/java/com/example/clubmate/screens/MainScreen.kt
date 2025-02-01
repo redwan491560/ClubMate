@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,7 +37,6 @@ import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,13 +52,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -72,10 +68,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
-import com.example.clubmate.ui.theme.Composables.Companion.NavigationBarIcon
+import com.example.clubmate.db.Status
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.ItemDesignAlert
+import com.example.clubmate.ui.theme.ItemDesignGroupAlert
 import com.example.clubmate.ui.theme.roboto
+import com.example.clubmate.util.NavBarItems
 import com.example.clubmate.util.chat.ChatsDesign
 import com.example.clubmate.util.getInternetConnectionStatus
 import com.example.clubmate.util.group.GroupDesign
@@ -102,8 +100,12 @@ fun MainScreen(
 
 
     val currentUser = authViewModel.currentUser
+    val authState = authViewModel.authState
     val currentUserId = currentUser.value?.uid
 
+    LaunchedEffect(Unit) {
+        if (authState.value == Status.NotAuthenticated) navController.navigate(Routes.Login)
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -153,106 +155,15 @@ fun MainScreen(
         ModalDrawerSheet(
             drawerShape = RoundedCornerShape(6.dp), modifier = Modifier.padding(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(250.dp)
-                    .padding(5.dp, 10.dp)
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.Start,
-                    modifier = Modifier.padding(10.dp)
-                ) {
-                    NavigationBarIcon(
-                        title = "Account",
-                        image = painterResource(id = R.drawable.account_circle_24px)
-                    ) {
-                        navController.navigate(Routes.Accounts)
-                    }
-                    NavigationBarIcon(
-                        title = "Security", image = painterResource(id = R.drawable.security_24px)
-                    ) {
-                        navController.navigate(Routes.Security)
-                    }
-                    NavigationBarIcon(
-                        title = "Settings", image = painterResource(id = R.drawable.settings_24px)
-                    ) {
-                        navController.navigate(Routes.Setting)
-                    }
-                    NavigationBarIcon(
-                        title = "Personalize", image = painterResource(id = R.drawable.personalize)
-                    ) {
-                        navController.navigate(Routes.Personalize)
-                    }
-                    NavigationBarIcon(
-                        title = "Developers", image = painterResource(id = R.drawable.developers)
-                    ) {
-                        navController.navigate(Routes.Developers)
-                    }
-                    NavigationBarIcon(
-                        title = "Report a bug", image = painterResource(id = R.drawable.report_bug)
-                    ) {
-                        navController.navigate(Routes.ReportBug)
-                    }
-                    NavigationBarIcon(
-                        title = "Sign Out",
-                        image = painterResource(id = R.drawable.logout_24px),
-                        color = Color(0xFFF80808)
-                    ) {
-                        authViewModel.signOut()
-                        navController.navigate(Routes.Login) {
-                            navController.popBackStack()
-                        }
-                    }
-                }
-                OutlinedCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(15.dp, 8.dp)
-                        .align(Alignment.BottomCenter), shape = RoundedCornerShape(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.chat_bg),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                                .alpha(.24f)
-                                .padding(6.dp)
-                                .background(Color(0xFF2398AC))
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(5.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.logo_primary),
-                                contentDescription = null,
-                                modifier = Modifier.size(55.dp)
-                            )
-                            Spacer(modifier = Modifier.width(15.dp))
-                            Text(
-                                text = "ClubMate",
-                                fontSize = 22.sp,
-                                color = Color(0xFF071CCA),
-                                fontFamily = roboto
-                            )
-                        }
-                    }
+            NavBarItems(onAccount = { navController.navigate(Routes.Accounts) },
+                onSecurity = { navController.navigate(Routes.Security) },
+                onSettings = { navController.navigate(Routes.Setting) },
+                onPersonalize = { navController.navigate(Routes.Personalize) },
+                onDevelopers = { navController.navigate(Routes.Developers) },
+                onReportBug = { navController.navigate(Routes.ReportBug) }) {
+                authViewModel.signOut()
+                navController.navigate(Routes.Login) {
+                    navController.popBackStack()
                 }
             }
         }
@@ -506,7 +417,7 @@ fun MainScreen(
                                                             chatViewmodel.initiateChat(
                                                                 senderId = uid,
                                                                 receiverId = user.uid,
-                                                                message = "hello, there"
+                                                                message = ""
                                                             ) {
 
                                                             }
@@ -579,7 +490,7 @@ fun MainScreen(
                                                 imeAction = ImeAction.Done
                                             ),
                                             keyboardActions = KeyboardActions(onDone = {
-                                                chatViewmodel.findUser(query)
+                                                grpViewmodel.findGroup(query)
                                             })
                                         )
                                         Image(painter = painterResource(id = R.drawable.search),
@@ -590,12 +501,12 @@ fun MainScreen(
                                                 .align(Alignment.CenterEnd)
                                                 .rotate(270f)
                                                 .clickable {
-                                                    chatViewmodel.findUser(query)
+                                                    grpViewmodel.findGroup(query)
                                                 })
                                     }
                                     Row {
-                                        ItemDesignAlert(
-                                            userState = chatViewmodel.userState
+                                        ItemDesignGroupAlert(
+                                            groupState = grpViewmodel.groupState
                                         )
                                     }
                                 }
@@ -610,7 +521,7 @@ fun MainScreen(
                                         onClick = {
                                             grpState = false
                                             query = ""
-                                            chatViewmodel.emptyUser()
+                                            grpViewmodel.emptyGroup()
                                         },
                                         colors = ButtonDefaults.textButtonColors(Color.Red),
                                         shape = RoundedCornerShape(8.dp),
@@ -622,20 +533,23 @@ fun MainScreen(
                                         border = BorderStroke(1.dp, Color.Blue),
                                         onClick = {
                                             if (query.isBlank()) {
-                                                chatViewmodel.setUserEmpty("Input is empty")
+                                                grpViewmodel.emptyGroup("Input is empty")
                                             } else {
-                                                currentUser.value?.uid?.let { uid ->
-                                                    grpViewmodel.joinGroup(
-                                                        grpId = query,
-                                                        uid = uid
-                                                    ) {
-                                                        if (it) {
-                                                            grpState = false
-                                                            query = ""
-                                                            chatViewmodel.emptyUser()
+                                                grpViewmodel.group?.let {
+                                                    currentUser.value?.uid?.let { uid ->
+                                                        grpViewmodel.joinGroup(
+                                                            grpId = query, uid = uid
+                                                        ) {
+                                                            if (it) {
+                                                                grpState = false
+                                                                query = ""
+                                                                grpViewmodel.emptyGroup()
+                                                            } else {
+                                                                grpViewmodel.emptyGroup("Group joined failed")
+                                                            }
                                                         }
-                                                    }
 
+                                                    }
                                                 }
                                             }
                                         },
@@ -729,8 +643,7 @@ fun MainScreen(
                                         ) {
                                             navController.navigate(
                                                 Routes.GroupModel(
-                                                    user = currentUserId,
-                                                    grpId = item.grpId
+                                                    user = currentUserId, grpId = item.grpId
                                                 )
                                             )
                                         }
@@ -740,8 +653,7 @@ fun MainScreen(
                         }
                     } else {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                         ) {
                             TextDesign(text = "Connect to internet", size = 18)
                         }
@@ -751,5 +663,3 @@ fun MainScreen(
         }
     }
 }
-
-
