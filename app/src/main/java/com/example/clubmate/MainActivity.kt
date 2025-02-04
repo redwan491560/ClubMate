@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.clubmate.auth.LoginScreen
+import com.example.clubmate.auth.PrivateChannelAuth
 import com.example.clubmate.auth.RegisterScreen
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.Status
@@ -28,6 +29,8 @@ import com.example.clubmate.navbarScreens.PersonalizeScreen
 import com.example.clubmate.navbarScreens.ReportBugScreen
 import com.example.clubmate.navbarScreens.SecurityScreen
 import com.example.clubmate.navbarScreens.SettingsScreen
+import com.example.clubmate.privateChannel.CreatePrivateChannelScreen
+import com.example.clubmate.privateChannel.PrivateChannel
 import com.example.clubmate.screens.ChatScreen
 import com.example.clubmate.screens.CreateGroupScreen
 import com.example.clubmate.screens.GroupDetailsScreen
@@ -43,6 +46,7 @@ import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.ChatViewModel
 import com.example.clubmate.viewmodel.GroupViewmodel
 import com.example.clubmate.viewmodel.MainViewmodel
+import com.example.clubmate.viewmodel.PrivateChannelViewModel
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -223,6 +227,24 @@ fun App(
             )
         }
 
+        // private
+
+        composable<Routes.PrivateAuth> {
+            val privateChannelViewModel: PrivateChannelViewModel = viewModel()
+            PrivateChannelAuth(navController, privateChannelViewModel)
+        }
+        composable<Routes.PrivateChat> {
+            val args = it.toRoute<Routes.PrivateChat>()
+            PrivateChannel(
+                channelId = args.channelId
+            )
+        }
+
+        composable<Routes.CreateChannel> {
+            val viewmodel: PrivateChannelViewModel = viewModel()
+            CreatePrivateChannelScreen(viewmodel = viewmodel, navController = navController)
+        }
+
 
         // nav screens
 
@@ -233,24 +255,16 @@ fun App(
             PersonalizeScreen(authViewmodel = authViewModel, navController = navController)
         }
         composable<Routes.ReportBug> {
-            ReportBugScreen(
-                authViewmodel = authViewModel, navController = navController
-            )
+            ReportBugScreen(authViewmodel = authViewModel, navController = navController)
         }
         composable<Routes.Setting> {
-            SettingsScreen(
-                authViewmodel = authViewModel, navController = navController
-            )
+            SettingsScreen(authViewmodel = authViewModel, navController = navController)
         }
         composable<Routes.Developers> {
-            DevelopersScreen(
-                navController = navController
-            )
+            DevelopersScreen(navController = navController)
         }
         composable<Routes.Security> {
-            SecurityScreen(
-                authViewmodel = authViewModel, navController = navController
-            )
+            SecurityScreen(authViewmodel = authViewModel, navController = navController)
         }
     }
 }

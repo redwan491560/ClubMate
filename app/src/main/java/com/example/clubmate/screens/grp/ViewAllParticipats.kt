@@ -64,6 +64,7 @@ fun ViewAllParticipants(
     var grpDetails by remember { mutableStateOf(Routes.GrpDetails()) }
 
     LaunchedEffect(Unit) {
+        grpViewmodel.emptyUser()
         grpViewmodel.loadGroupInfo(grpId = grpInfo.grpId) {
             it?.let {
                 grpDetails = it

@@ -1,5 +1,6 @@
 package com.example.clubmate.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -30,8 +31,6 @@ import kotlin.coroutines.suspendCoroutine
 open class ChatViewModel : AuthViewModel() {
 
     // db reference
-
-
     private val _db = FirebaseDatabase.getInstance()
     private val chatRef = _db.getReference("chat")
     private val userRef = _db.getReference("user")
@@ -40,6 +39,8 @@ open class ChatViewModel : AuthViewModel() {
     // message list
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages
+    private val _unreadMessages = MutableStateFlow<List<Message>>(emptyList())
+    val unreadMessages: StateFlow<List<Message>> = _unreadMessages
 
     // chats lists
     private val _chats = MutableStateFlow<List<Chats>>(emptyList())
@@ -88,12 +89,7 @@ open class ChatViewModel : AuthViewModel() {
             if (users.size == 2) {
                 onClick(chatId)
                 chatRef.child(chatId).child("participants").setValue(users).addOnCompleteListener {
-                    sendMessage(
-                        chatId = chatId,
-                        messageText = message,
-                        receiverId = receiverId,
-                        senderId = senderId
-                    )
+                    Log.d("failed to initiate chat", "initiateChat: ")
                 }.addOnFailureListener {
                     Log.d("failed to initiate chat", "initiateChat: ")
                 }
@@ -104,17 +100,13 @@ open class ChatViewModel : AuthViewModel() {
     }
 
     private fun saveMessageToDatabase(
-        chatId: String,
-        messageId: String,
-        messageData: Message
+        chatId: String, messageId: String, messageData: Message
     ) {
 
-        chatRef.child(chatId).child("messages").child(messageId)
-            .setValue(messageData)
+        chatRef.child(chatId).child("messages").child(messageId).setValue(messageData)
             .addOnSuccessListener {
                 Log.d("Success", "Activity added successfully")
-            }
-            .addOnFailureListener { e ->
+            }.addOnFailureListener { e ->
                 Log.e("Failure", "Failed to add activity: ${e.message}")
             }
     }
@@ -196,8 +188,7 @@ open class ChatViewModel : AuthViewModel() {
                     Log.e("Cloudinary", "Upload rescheduled")
 
                 }
-            })
-            .dispatch()
+            }).dispatch()
     }
 
     private fun updateLastMessage(chatId: String, messageData: Message) {
@@ -208,7 +199,7 @@ open class ChatViewModel : AuthViewModel() {
     }
 
 
-    fun receiveMessage(chatId: String) {
+    fun receiveMessage(chatId: String, context: Context, recieverId: String) {
 
         viewModelScope.launch {
             chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
@@ -219,8 +210,9 @@ open class ChatViewModel : AuthViewModel() {
                                 snapshot: DataSnapshot, previousChildName: String?
                             ) {
                                 val message = snapshot.getValue(Message::class.java)
-                                message?.let {
-                                    val updMsg = it.copy(messageText = it.messageText)
+                                message?.let { it1 ->
+                                    //notification
+                                    val updMsg = it1.copy(messageText = it1.messageText)
                                     val updatedMessages = _messages.value.toMutableList()
                                     if (updatedMessages.none { existingMessage ->
                                             existingMessage.timestamp == updMsg.timestamp
@@ -343,25 +335,38 @@ open class ChatViewModel : AuthViewModel() {
                     val chatId = snapshot.key
                     if (chatId != null && chatId.contains(receiverId)) {
                         val participants = chatId.split("+")
-
                         if (participants.contains(receiverId)) {
                             val newChat = Chats(chatId = chatId)
 
+                            // Asynchronously fetch last message and then update the chat object
                             getLastMessage(chatId) { lstMsg ->
                                 lstMsg?.let {
-                                    newChat.lastMessage = it
+                                    // Create a new chat object with the updated lastMessage
+                                    val updatedChat = newChat.copy(lastMessage = it)
+                                    // Update the chat list with the new chat
+                                    val updatedChats = _chats.value.toMutableList()
+                                    val index = updatedChats.indexOfFirst { chat -> chat.chatId == chatId }
+                                    if (index >= 0) {
+                                        updatedChats[index] = updatedChat
+                                        _chats.value = updatedChats
+                                    }
                                 }
                             }
 
                             getParticipants(chatId) { prt ->
-                                newChat.participants = prt
+                                // Create a new chat object with updated participants
+                                val updatedChat = newChat.copy(participants = prt)
+                                val updatedChats = _chats.value.toMutableList()
+                                val index = updatedChats.indexOfFirst { chat -> chat.chatId == chatId }
+                                if (index >= 0) {
+                                    updatedChats[index] = updatedChat
+                                    _chats.value = updatedChats
+                                }
                             }
 
-                            // Update the _contact list
+                            // Add the chat initially if it's not already present
                             val updatedChats = _chats.value.toMutableList()
-                            val index = updatedChats.indexOfFirst {
-                                it.chatId == chatId
-                            }
+                            val index = updatedChats.indexOfFirst { it.chatId == chatId }
                             if (index >= 0) {
                                 updatedChats[index] = newChat
                             } else {
@@ -371,6 +376,40 @@ open class ChatViewModel : AuthViewModel() {
                         }
                     }
                 }
+
+
+//                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+//                    val chatId = snapshot.key
+//                    if (chatId != null && chatId.contains(receiverId)) {
+//                        val participants = chatId.split("+")
+//
+//                        if (participants.contains(receiverId)) {
+//                            val newChat = Chats(chatId = chatId)
+//
+//                            getLastMessage(chatId) { lstMsg ->
+//                                lstMsg?.let {
+//                                    newChat.lastMessage = it
+//                                }
+//                            }
+//
+//                            getParticipants(chatId) { prt ->
+//                                newChat.participants = prt
+//                            }
+//
+//                            // Update the _contact list
+//                            val updatedChats = _chats.value.toMutableList()
+//                            val index = updatedChats.indexOfFirst {
+//                                it.chatId == chatId
+//                            }
+//                            if (index >= 0) {
+//                                updatedChats[index] = newChat
+//                            } else {
+//                                updatedChats.add(newChat)
+//                            }
+//                            _chats.value = updatedChats
+//                        }
+//                    }
+//                }
 
 
                 override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
@@ -424,6 +463,15 @@ open class ChatViewModel : AuthViewModel() {
                     Log.e("ChatListener", "Error listening for chats: ${error.message}")
                 }
             })
+        }
+    }
+
+    private fun updateChatInState(updatedChat: Chats) {
+        val updatedChats = _chats.value.toMutableList()
+        val index = updatedChats.indexOfFirst { it.chatId == updatedChat.chatId }
+        if (index >= 0) {
+            updatedChats[index] = updatedChat
+            _chats.value = updatedChats
         }
     }
 
@@ -528,6 +576,7 @@ open class ChatViewModel : AuthViewModel() {
 
     private fun find(search: String, onResult: (UserModel?) -> Unit) {
 
+
         userRef.orderByChild("email").equalTo(search)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -567,6 +616,47 @@ open class ChatViewModel : AuthViewModel() {
                 }
             })
     }
+
+    // send notification
+    fun checkForUnseenMessages(userId: String, context: Context) {
+        chatRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val unseenMessages = mutableListOf<Message>()
+                for (chatSnapshot in snapshot.children) {
+                    val messagesSnapshot = chatSnapshot.child("messages")
+                    for (messageSnapshot in messagesSnapshot.children) {
+                        val message = messageSnapshot.getValue(Message::class.java)
+                        if (message != null && !message.seen && message.receiverId == userId) {
+                            unseenMessages.add(message)
+                        }
+                    }
+                }
+
+                _unreadMessages.value = unseenMessages
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatViewModel", "Error checking unseen messages: ${error.message}")
+            }
+        })
+    }
+
+    // Mark all messages in a chat as seen
+    fun markMessagesAsSeen(chatId: String, receiverId: String) {
+        chatRef.child(chatId).child("messages")
+            .orderByChild("receiverId")
+            .equalTo(receiverId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    for (child in snapshot.children) {
+                        child.ref.child("seen").setValue(true) // Update "seen" status
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+            })
+    }
+
 
 }
 

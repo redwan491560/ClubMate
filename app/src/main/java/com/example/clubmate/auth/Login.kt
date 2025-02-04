@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -121,27 +121,20 @@ fun LoginScreen(authViewmodel: AuthViewModel, navController: NavHostController) 
                 }
                 // do like this
 
-                AuthTextFieldComponent(
-                    value = password,
-                    isPasswordField = true,
-                    onLoginClick = {
-                        authViewmodel.logIn(email, password)
-                    }) {
+                AuthTextFieldComponent(value = password, isPasswordField = true, onLoginClick = {
+                    authViewmodel.logIn(email, password)
+                }) {
                     password = it
                 }
 
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 15.dp),
-                    horizontalArrangement = Arrangement.Center
+                        .width(300.dp)
+                        .height(10.dp)
+                        .padding(top = 5.dp)
                 ) {
                     if (authState.value == Status.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .width(200.dp)
-                        )
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
 
@@ -158,6 +151,7 @@ fun LoginScreen(authViewmodel: AuthViewModel, navController: NavHostController) 
                 }
             }
         }
+
         Spacer(
             modifier = Modifier
                 .width(600.dp)
@@ -189,7 +183,7 @@ fun LoginScreen(authViewmodel: AuthViewModel, navController: NavHostController) 
                 },
                 fontFamily = roboto
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(25.dp))
         }
     }
 }
@@ -267,6 +261,6 @@ fun AuthTextFieldComponent(
             keyboardType = KeyboardType.Text,
             imeAction = if (isPasswordField) ImeAction.Done else ImeAction.Next
         ),
-        modifier = modifier
+        modifier = modifier.width(310.dp)
     )
 }

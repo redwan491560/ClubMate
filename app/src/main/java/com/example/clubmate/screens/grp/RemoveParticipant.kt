@@ -62,6 +62,7 @@ fun RemoveParticipant(grpInfo: Routes.RemoveUserFromGroup, grpViewmodel: GroupVi
     }
 
     LaunchedEffect(Unit) {
+        grpViewmodel.emptyUser()
         grpViewmodel.loadGroupInfo(grpId = grpInfo.grpId) {
             it?.let {
                 grpDetails = it

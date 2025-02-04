@@ -64,6 +64,7 @@ fun AddParticipants(
     }
 
     LaunchedEffect(Unit) {
+        grpViewmodel.emptyUser()
         grpViewmodel.loadGroupInfo(grpId = grpInfo.grpId) {
             it?.let {
                 grpDetails = it

@@ -113,7 +113,7 @@ fun AccountScreen(authViewmodel: AuthViewModel, navController: NavController) {
                 }
                 AccountsCard(
                     title = "Change password",
-                    icon = painterResource(id = R.drawable.password),
+                    icon = painterResource(id = R.drawable.lock_logo),
                     description = "********"
                 ) {
 

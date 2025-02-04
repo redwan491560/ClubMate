@@ -1,6 +1,5 @@
 package com.example.clubmate.db
 
-import com.example.clubmate.viewmodel.GroupDetails
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -43,13 +42,25 @@ class Routes {
     @Serializable
     object Chat
 
+    @Serializable
+    object PrivateAuth
+
+
+    @Serializable
+    data class PrivateChat(
+        val channelId: String,
+        val password: String
+    )
+
+    @Serializable
+    object CreateChannel
+
 
     // groups
 
     @Serializable
     data class GroupModel(
-        val user: String = "",
-        val grpId: String = ""
+        val user: String = "", val grpId: String = ""
     )
 
     @Serializable
@@ -92,10 +103,7 @@ class Routes {
 
     @Serializable
     data class GroupUserDetails(
-        val grpId: String,
-        val grpName: String = "",
-        val userId: String,
-        val currentUserId: String
+        val grpId: String, val grpName: String = "", val userId: String, val currentUserId: String
     )
 
 
@@ -144,7 +152,9 @@ sealed class Status {
 
 // not final
 data class UserModel(
-    val email: String = "", val phone: String = "",
-    val uid: String = "", val username: String = "",
+    val email: String = "",
+    val phone: String = "",
+    val uid: String = "",
+    val username: String = "",
     val publicKey: String = ""
 )

@@ -43,12 +43,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
@@ -118,15 +119,15 @@ fun MainScreen(
     val group = grpViewmodel.group
 
     val chips = listOf("contacts", "groups")
-    var chipsState by remember { mutableIntStateOf(0) }
+    var chipsState by rememberSaveable { mutableIntStateOf(0) }
 
 
     var expanded by remember { mutableStateOf(false) }
     val animationDuration = 300
 
 
-    val chatsList = chatViewmodel.chats.collectAsState()
-    val groupsList = grpViewmodel.groupsList.collectAsState()
+    val chatsList = chatViewmodel.chats.collectAsStateWithLifecycle()
+    val groupsList = grpViewmodel.groupsList.collectAsStateWithLifecycle()
 
     LaunchedEffect(groupsList) {
         currentUser.value?.let {
@@ -134,6 +135,12 @@ fun MainScreen(
         }
     }
 
+    // notification
+    LaunchedEffect(Unit) {
+        currentUserId?.let {
+            chatViewmodel.checkForUnseenMessages(it, context)
+        }
+    }
     LaunchedEffect(chatsList) {
         currentUser.value?.let {
             chatViewmodel.listenForChats(currentUser.value!!.uid)
@@ -150,6 +157,8 @@ fun MainScreen(
             isOnline = isConnected
         }
     }
+
+
 
     ModalNavigationDrawer(drawerState = drawerState, gesturesEnabled = true, drawerContent = {
         ModalDrawerSheet(
@@ -210,6 +219,8 @@ fun MainScreen(
                             .size(30.dp)
                             .clickable {
                                 // Execute a private unauthenticated channel
+                                navController.navigate(Routes.PrivateAuth)
+
                             })
                     Image(painter = painterResource(id = R.drawable.menubar),
                         contentDescription = null,
@@ -314,130 +325,133 @@ fun MainScreen(
                 Column(
                     modifier = Modifier.padding(top = 60.dp)
                 ) {
-                    if (alertState && chipsState == 0) {
-                        AlertDialog(shape = RoundedCornerShape(15.dp), onDismissRequest = {
-                            alertState = false
-                            chatViewmodel.emptyUser()
-                        }, confirmButton = {
 
-                        }, title = {
-                            Box(
-                                modifier = Modifier
-                                    .height(350.dp)
-                                    .width(450.dp)
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxWidth()
+                    if (alertState && chipsState == 0) {
+                        AlertDialog(
+                            shape = RoundedCornerShape(15.dp), onDismissRequest = {
+                                alertState = false
+                                chatViewmodel.emptyUser()
+                            }, confirmButton = {
+
+                            }, title = {
+                                Box(
+                                    modifier = Modifier
+                                        .height(350.dp)
+                                        .width(450.dp)
                                 ) {
-                                    TextDesign(text = "Add chat to ClubMate", size = 17)
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 10.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xD5C0D0F7)),
-                                        contentAlignment = Alignment.CenterStart
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        if (query.isEmpty()) {
-                                            Text(
-                                                text = "Search by name or email",
-                                                fontFamily = roboto,
-                                                fontSize = 14.sp,
-                                                color = Color.Black,
-                                                modifier = Modifier.padding(start = 15.dp)
-                                            )
-                                        }
-                                        BasicTextField(
-                                            value = query,
-                                            onValueChange = {
-                                                query = it
-                                            },
+                                        TextDesign(text = "Add chat to ClubMate", size = 17)
+                                        Box(
                                             modifier = Modifier
-                                                .padding(15.dp)
-                                                .fillMaxWidth(),
-                                            textStyle = TextStyle(
-                                                fontFamily = roboto,
-                                                fontSize = 16.sp,
-                                                color = Color.Black
-                                            ),
-                                            maxLines = 1,
-                                            keyboardOptions = KeyboardOptions(
-                                                imeAction = ImeAction.Done
-                                            ),
-                                            keyboardActions = KeyboardActions(onDone = {
-                                                chatViewmodel.findUser(query)
-                                            })
-                                        )
-                                        Image(painter = painterResource(id = R.drawable.search),
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .padding(end = 15.dp)
-                                                .size(22.dp)
-                                                .align(Alignment.CenterEnd)
-                                                .rotate(270f)
-                                                .clickable {
+                                                .fillMaxWidth()
+                                                .padding(top = 10.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0xD5C0D0F7)),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            if (query.isEmpty()) {
+                                                Text(
+                                                    text = "Search by name or email",
+                                                    fontFamily = roboto,
+                                                    fontSize = 14.sp,
+                                                    color = Color.Black,
+                                                    modifier = Modifier.padding(start = 15.dp)
+                                                )
+                                            }
+                                            BasicTextField(
+                                                value = query,
+                                                onValueChange = {
+                                                    query = it
+                                                },
+                                                modifier = Modifier
+                                                    .padding(15.dp)
+                                                    .fillMaxWidth(),
+                                                textStyle = TextStyle(
+                                                    fontFamily = roboto,
+                                                    fontSize = 16.sp,
+                                                    color = Color.Black
+                                                ),
+                                                maxLines = 1,
+                                                keyboardOptions = KeyboardOptions(
+                                                    imeAction = ImeAction.Done
+                                                ),
+                                                keyboardActions = KeyboardActions(onDone = {
                                                     chatViewmodel.findUser(query)
                                                 })
+                                            )
+                                            Image(painter = painterResource(id = R.drawable.search),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .padding(end = 15.dp)
+                                                    .size(22.dp)
+                                                    .align(Alignment.CenterEnd)
+                                                    .rotate(270f)
+                                                    .clickable {
+                                                        chatViewmodel.findUser(query)
+                                                    })
+                                        }
+                                        Row {
+                                            ItemDesignAlert(
+                                                userState = chatViewmodel.userState
+                                            )
+                                        }
                                     }
-                                    Row {
-                                        ItemDesignAlert(
-                                            userState = chatViewmodel.userState
-                                        )
-                                    }
-                                }
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .align(Alignment.BottomCenter),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    TextButton(
-                                        onClick = {
-                                            alertState = false
-                                            query = ""
-                                            chatViewmodel.emptyUser()
-                                        },
-                                        colors = ButtonDefaults.textButtonColors(Color.Red),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.width(120.dp)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .align(Alignment.BottomCenter),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        TextDesign(text = "Cancel")
-                                    }
-                                    TextButton(
-                                        border = BorderStroke(1.dp, Color.Blue),
-                                        onClick = {
-                                            if (query.isBlank()) {
-                                                chatViewmodel.setUserEmpty("Input is empty")
-                                            } else {
-                                                currentUser.value?.uid?.let { uid ->
-                                                    user?.let { user ->
-                                                        if (user.uid.isNotEmpty()) {
-                                                            chatViewmodel.initiateChat(
-                                                                senderId = uid,
-                                                                receiverId = user.uid,
-                                                                message = ""
-                                                            ) {
+                                        TextButton(
+                                            onClick = {
+                                                alertState = false
+                                                query = ""
+                                                chatViewmodel.emptyUser()
+                                            },
+                                            colors = ButtonDefaults.textButtonColors(Color.Red),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.width(120.dp)
+                                        ) {
+                                            TextDesign(text = "Cancel")
+                                        }
+                                        TextButton(
+                                            border = BorderStroke(1.dp, Color.Blue),
+                                            onClick = {
+                                                if (query.isBlank()) {
+                                                    chatViewmodel.setUserEmpty("Input is empty")
+                                                } else {
+                                                    currentUser.value?.uid?.let { uid ->
+                                                        user?.let { user ->
+                                                            if (user.uid.isNotEmpty()) {
+                                                                chatViewmodel.initiateChat(
+                                                                    senderId = uid,
+                                                                    receiverId = user.uid,
+                                                                    message = ""
+                                                                ) {
 
+                                                                }
+                                                                // Reset states after initiating chat
+                                                                alertState = false
+                                                                query = ""
+                                                                chatViewmodel.emptyUser()
                                                             }
-                                                            // Reset states after initiating chat
-                                                            alertState = false
-                                                            query = ""
-                                                            chatViewmodel.emptyUser()
                                                         }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.width(120.dp)
-                                    ) {
-                                        TextDesign(text = "Add Chat")
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.width(120.dp)
+                                        ) {
+                                            TextDesign(text = "Add Chat")
+                                        }
                                     }
                                 }
                             }
-                        })
+                        )
                     }
 
                     if (grpState && chipsState == 1) {

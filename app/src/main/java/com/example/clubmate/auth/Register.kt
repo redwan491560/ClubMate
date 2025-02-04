@@ -1,7 +1,6 @@
 package com.example.clubmate.auth
 
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,8 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -70,17 +69,21 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
     var phone by remember { mutableStateOf("") }
 
     val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
     val authState = authViewmodel.authState.observeAsState()
     LaunchedEffect(authState.value) {
         when (authState.value) {
-            is Status.Error -> Toast.makeText(
-                context,
-                (authState.value as Status.Error).message,
-                Toast.LENGTH_SHORT
-            ).show()
+            is Status.Error -> {
+                Toast.makeText(
+                    context,
+                    (authState.value as Status.Error).message,
+                    Toast.LENGTH_SHORT
+                ).show()
+                isLoading = false
+            }
 
             else -> Unit
         }
@@ -123,7 +126,6 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                     .padding(top = 15.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-
                 TextField(
                     value = userName,
                     onValueChange = {
@@ -131,7 +133,7 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                     },
                     placeholder = {
                         Text(text = "Username", fontFamily = roboto)
-                    },
+                    }, modifier = Modifier.width(310.dp),
                     maxLines = 1,
                     textStyle = TextStyle(fontFamily = roboto),
                     shape = RoundedCornerShape(8.dp),
@@ -152,7 +154,7 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
 
                 TextField(value = email, onValueChange = {
                     email = it
-                }, maxLines = 1, placeholder = {
+                }, maxLines = 1, modifier = Modifier.width(310.dp), placeholder = {
                     Text(text = "Email", fontFamily = roboto)
                 }, shape = RoundedCornerShape(8.dp), colors = TextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
@@ -190,7 +192,7 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp), modifier = Modifier.width(310.dp)
                 )
                 TextField(
                     value = password,
@@ -205,7 +207,9 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                     visualTransformation = if (visibility) VisualTransformation.None
                     else PasswordVisualTransformation(),
                     keyboardActions = KeyboardActions(onDone = {
+                        isLoading = true
                         authViewmodel.register(email, password, userName, phone) {
+                            isLoading = false
                             navController.navigate(Routes.Login)
                         }
                     }),
@@ -227,7 +231,7 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                     },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text, imeAction = ImeAction.Done
-                    ),
+                    ), modifier = Modifier.width(310.dp),
                     colors = TextFieldDefaults.colors(
                         focusedTextColor = Color.Black,
                         unfocusedTextColor = Color.Black,
@@ -241,17 +245,31 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                     shape = RoundedCornerShape(8.dp)
                 )
 
-
+                Row(
+                    modifier = Modifier
+                        .width(300.dp)
+                        .height(10.dp)
+                        .padding(top = 5.dp)
+                ) {
+                    if (isLoading) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                }
                 OutlinedButton(
                     onClick = {
+                        isLoading = true
                         scope.launch {
                             authViewmodel.register(
                                 email = email,
                                 password = password,
                                 userName = userName,
                                 phone = phone
-                            ) {
-                                navController.navigate(Routes.Login)
+                            ) { state ->
+                                if (!state) isLoading = false
+                                else{
+                                    isLoading = false
+                                    navController.navigate(Routes.Login)
+                                }
                             }
                         }
                     }, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(
@@ -266,43 +284,6 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                         fontSize = 18.sp
                     )
                 }
-            }
-
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 20.dp)
-            ) {
-                Text(
-                    text = "Register using",
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(10.dp),
-                    fontFamily = roboto
-                )
-                OutlinedCard(
-                    shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.Black)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(15.dp, 8.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(painter = painterResource(id = R.drawable.google),
-                            contentDescription = null,
-                            Modifier
-                                .padding(end = 15.dp)
-                                .size(30.dp)
-                                .clickable {
-
-                                })
-                        Image(
-                            painter = painterResource(id = R.drawable.yahoo),
-                            contentDescription = null,
-                            Modifier.size(35.dp)
-                        )
-                    }
-                }
-
             }
         }
 
@@ -320,13 +301,13 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
-            verticalArrangement = Arrangement.spacedBy(15.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Already have an account?", fontSize = 16.sp, fontFamily = roboto
             )
-            Text(text = "LogIn",
+            Text(text = "Login",
                 fontFamily = roboto,
                 fontSize = 21.sp,
                 textDecoration = TextDecoration.Underline,
@@ -334,7 +315,7 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                 modifier = Modifier.clickable {
                     navController.navigate(Routes.Login)
                 })
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(25.dp))
         }
     }
 }
@@ -347,10 +328,3 @@ private fun Sheet() {
         authViewmodel = AuthViewModel(), navController = rememberNavController()
     )
 }
-
-
-
-
-
-
-

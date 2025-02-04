@@ -11,6 +11,7 @@ data class Message(
     val messageText: String = "",
     val imageRef: String = "",
     val timestamp: Long = 0,
+    val seen: Boolean = false,
     val status: MessageStatus = MessageStatus.SENDING,
     val messageType: MessageType = MessageType.Text
 )

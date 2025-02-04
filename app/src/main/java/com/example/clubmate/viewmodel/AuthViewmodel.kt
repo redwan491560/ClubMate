@@ -130,21 +130,23 @@ open class AuthViewModel : ViewModel() {
     fun register(
         email: String, password: String,
         userName: String,
-        phone: String, onClick: () -> Unit
+        phone: String, onClick: (Boolean) -> Unit
     ) {
         if (email.isBlank() || password.isBlank() || phone.isBlank()) {
             _authState.value = Status.Error("Email / password or phone cannot be empty")
+            onClick(false)
             return
         }
         if (!email.matches(emailRegex)) {
             _authState.value = Status.Error("Invalid email format")
+            onClick(false)
             return
         }
         if (!password.matches(passwordRegex)) {
             _authState.value = Status.Error("Password does not meet requirements")
+            onClick(false)
             return
         }
-        _auth.signOut()
         _auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -153,17 +155,20 @@ open class AuthViewModel : ViewModel() {
                         if (emailTask.isSuccessful) {
                             register2Realtime(email, phone, userName, user.uid) {
                                 _currentUser.value = user
-                                onClick()
+                                onClick(true)
                             }
                         } else {
+                            onClick(false)
                             _authState.value = Status.Error("Failed to send verification email")
                         }
                     }
                 } else {
+                    onClick(false)
                     _authState.value =
                         Status.Error(task.exception?.message ?: "Registration failed")
                 }
             }.addOnFailureListener { exception ->
+                onClick(false)
                 _authState.value = Status.Error(exception.message ?: "An error occurred")
             }
     }
