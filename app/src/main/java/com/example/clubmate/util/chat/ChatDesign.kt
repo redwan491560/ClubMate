@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,10 +26,10 @@ import com.example.clubmate.ui.theme.roboto
 @Composable
 fun ChatsDesign(reciever: String, lastMessage: String, uri: String, onClick: () -> Unit) {
 
-    val name by remember {
+    var name by remember {
         mutableStateOf(reciever)
     }
-    val lastMsg by remember {
+    var lastMsg by remember {
         mutableStateOf(lastMessage)
     }
 
@@ -51,6 +52,7 @@ fun ChatsDesign(reciever: String, lastMessage: String, uri: String, onClick: () 
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+
                 Text(
                     text = if (uri.isNotEmpty()) "image..." else lastMsg,
                     color = Color.Gray,

@@ -234,9 +234,12 @@ fun App(
             PrivateChannelAuth(navController, privateChannelViewModel)
         }
         composable<Routes.PrivateChat> {
+            val privateChannelViewModel: PrivateChannelViewModel = viewModel()
             val args = it.toRoute<Routes.PrivateChat>()
             PrivateChannel(
-                channelId = args.channelId
+                uid = args.uid,
+                channelId = args.channelId,
+                viewModel = privateChannelViewModel, navController = navController
             )
         }
 

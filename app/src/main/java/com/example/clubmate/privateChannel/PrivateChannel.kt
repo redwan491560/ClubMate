@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,19 +15,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.waterfall
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,23 +39,47 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.clubmate.R
+import com.example.clubmate.db.Routes
+import com.example.clubmate.screens.launchToast
+import com.example.clubmate.ui.theme.Composables
 import com.example.clubmate.ui.theme.roboto
+import com.example.clubmate.util.chat.VanishingMessageDesign
+import com.example.clubmate.viewmodel.PrivateChannelViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun PrivateChannel(channelId: String) {
+fun PrivateChannel(
+    channelId: String,
+    uid: String,
+    viewModel: PrivateChannelViewModel,
+    navController: NavHostController
+) {
 
-    var text by remember {
-        mutableStateOf("")
+    var text by remember { mutableStateOf("") }
+    val messages = viewModel.privateMessageList.collectAsState()
+
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    LaunchedEffect(messages.value.size) {
+        if (messages.value.isNotEmpty()) {
+            listState.animateScrollToItem(messages.value.size - 1)
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { viewModel.leaveChatroom(channelId) }
     }
 
-    // make all the messages seen by launched effect
+    LaunchedEffect(Unit) {
+        viewModel.listenForMessages(channelId)
+    }
 
     var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val openGalleryLauncher =
@@ -83,6 +111,16 @@ fun PrivateChannel(channelId: String) {
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                     Text(text = channelId, color = Color.White, fontSize = 18.sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Composables.TextDesignClickable(text = "delete", color = Color.White) {
+                            viewModel.deleteChannel(channelId) {
+                                navController.navigate(Routes.PrivateAuth)
+                            }
+                        }
+                    }
                 }
                 Row {
                     Image(
@@ -128,7 +166,21 @@ fun PrivateChannel(channelId: String) {
                             modifier = Modifier
                                 .size(30.dp)
                                 .clickable {
-
+                                    if (text.isEmpty()) {
+                                        launchToast(context = context, "text cannot be empty")
+                                    } else {
+                                        if (uid.isNotEmpty()) {
+                                            viewModel.sendVanishingMessage(
+                                                chatId = channelId,
+                                                uid = uid,
+                                                messageText = text.trim(),
+                                                imageUrl = ""
+                                            )
+                                            text = ""
+                                        } else {
+                                            launchToast(context = context, "reenter the channel")
+                                        }
+                                    }
                                 }
                         )
                     },
@@ -175,20 +227,26 @@ fun PrivateChannel(channelId: String) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFF2A3150))
+                .padding(bottom = 110.dp)
         ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, top = 90.dp, end = 8.dp, bottom = 0.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items(messages.value.sortedBy { it.timestampSent }) {
+                    VanishingMessageDesign(
+                        message = it,
+                        isSent = (it.senderId == uid),
+                        time = viewModel.convertTimestamp(it.timestampSent)
+                    ) {
+                        // delete messages
+                    }
 
-
-
-
-
-
-
-
-
-
-
-
-
+                }
+            }
 
         }
 

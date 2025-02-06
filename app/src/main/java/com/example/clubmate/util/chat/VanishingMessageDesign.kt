@@ -34,15 +34,17 @@ import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.ui.theme.roboto
+import com.example.clubmate.viewmodel.MessageMap
+import com.example.clubmate.viewmodel.VanishingMessage
 
 
 @Composable
 fun VanishingMessageDesign(
-    message: Message,
+    message: VanishingMessage,
     isSent: Boolean,
     time: String = "",
     status: MessageStatus = MessageStatus.SENDING,
-    onDeleteMessage: (Message) -> Unit
+    onDeleteMessage: (VanishingMessage) -> Unit
 ) {
 
 
@@ -84,7 +86,7 @@ fun VanishingMessageDesign(
                             )
                         },
                 ) {
-                    if (message.imageRef.isNotEmpty()) {
+                    if (message.imageUrl.isNotEmpty()) {
                         // Display Image with preloading and caching
                         Box(modifier = Modifier.size(250.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
@@ -95,7 +97,7 @@ fun VanishingMessageDesign(
                                 strokeWidth = 4.dp
                             )
                             AsyncImage(
-                                model = message.imageRef,
+                                model = message.imageUrl,
                                 contentDescription = "Sent Image",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -120,7 +122,7 @@ fun VanishingMessageDesign(
                 }
                 Text(
                     text = time, fontFamily = roboto,
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, color = Color.White,
                     modifier = Modifier.padding(
                         end = if (isSent) 5.dp else 0.dp,
                     )

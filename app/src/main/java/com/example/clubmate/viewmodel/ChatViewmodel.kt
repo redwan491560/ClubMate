@@ -1,6 +1,5 @@
 package com.example.clubmate.viewmodel
 
-import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -39,6 +38,8 @@ open class ChatViewModel : AuthViewModel() {
     // message list
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages
+
+
     private val _unreadMessages = MutableStateFlow<List<Message>>(emptyList())
     val unreadMessages: StateFlow<List<Message>> = _unreadMessages
 
@@ -199,81 +200,82 @@ open class ChatViewModel : AuthViewModel() {
     }
 
 
-    fun receiveMessage(chatId: String, context: Context, recieverId: String) {
+    fun receiveMessage(chatId: String?) {
 
-        viewModelScope.launch {
-            chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
-                if (snapshot.exists()) {
-                    chatRef.child(chatId).child("messages")
-                        .addChildEventListener(object : ChildEventListener {
-                            override fun onChildAdded(
-                                snapshot: DataSnapshot, previousChildName: String?
-                            ) {
-                                val message = snapshot.getValue(Message::class.java)
-                                message?.let { it1 ->
-                                    //notification
-                                    val updMsg = it1.copy(messageText = it1.messageText)
-                                    val updatedMessages = _messages.value.toMutableList()
-                                    if (updatedMessages.none { existingMessage ->
-                                            existingMessage.timestamp == updMsg.timestamp
-                                        }) {
-                                        updatedMessages.add(updMsg)
-                                        _messages.value = updatedMessages
-                                    }
+        if (chatId.isNullOrEmpty()) return
+
+        chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                chatRef.child(chatId).child("messages")
+                    .addChildEventListener(object : ChildEventListener {
+                        override fun onChildAdded(
+                            snapshot: DataSnapshot, previousChildName: String?
+                        ) {
+                            val message = snapshot.getValue(Message::class.java)
+
+                            message?.let { it1 ->
+                                //notification
+                                val updMsg = it1.copy(messageText = it1.messageText)
+                                val updatedMessages = _messages.value.toMutableList()
+                                if (updatedMessages.none { existingMessage ->
+                                        existingMessage.timestamp == updMsg.timestamp
+                                    }) {
+                                    updatedMessages.add(updMsg)
+                                    _messages.value = updatedMessages
                                 }
                             }
+                        }
 
-                            override fun onChildChanged(
-                                snapshot: DataSnapshot, previousChildName: String?
-                            ) {
-                                val updatedMessage = snapshot.getValue(Message::class.java)
-                                updatedMessage?.let {
-                                    //    val decryptedMessageText = decryptMessage(it.messageText)
-                                    val newMessage = it.copy(messageText = it.messageText)
+                        override fun onChildChanged(
+                            snapshot: DataSnapshot, previousChildName: String?
+                        ) {
+                            val updatedMessage = snapshot.getValue(Message::class.java)
+                            updatedMessage?.let {
+                                val newMessage = it.copy(messageText = it.messageText)
 
-                                    val messagesList = _messages.value.toMutableList()
-                                    val index = messagesList.indexOfFirst { ind ->
-                                        ind.timestamp == newMessage.timestamp
-                                    }
-                                    if (index >= 0) {
-                                        messagesList[index] = newMessage
-                                        _messages.value = messagesList
-                                    }
+                                val messagesList = _messages.value.toMutableList()
+                                val index = messagesList.indexOfFirst { ind ->
+                                    ind.timestamp == newMessage.timestamp
                                 }
-                            }
-
-                            override fun onChildRemoved(snapshot: DataSnapshot) {
-                                val removedMessage = snapshot.getValue(Message::class.java)
-                                removedMessage?.let {
-                                    val messagesList = _messages.value.toMutableList()
-
-                                    messagesList.removeIf { message ->
-                                        message.timestamp == removedMessage.timestamp
-                                    }
+                                if (index >= 0) {
+                                    messagesList[index] = newMessage
                                     _messages.value = messagesList
+
                                 }
                             }
+                        }
 
-                            override fun onChildMoved(
-                                snapshot: DataSnapshot, previousChildName: String?
-                            ) {
-                                Log.d("TAG", "onChildMoved: ")
+                        override fun onChildRemoved(snapshot: DataSnapshot) {
+                            val removedMessage = snapshot.getValue(Message::class.java)
+                            removedMessage?.let {
+                                val messagesList = _messages.value.toMutableList()
+
+                                messagesList.removeIf { message ->
+                                    message.timestamp == removedMessage.timestamp
+                                }
+                                _messages.value = messagesList
+
                             }
+                        }
 
-                            override fun onCancelled(error: DatabaseError) {
-                                Log.d("TAG", "onChildMoved: ")
-                            }
+                        override fun onChildMoved(
+                            snapshot: DataSnapshot, previousChildName: String?
+                        ) {
+                            Log.d("TAG", "onChildMoved: ")
+                        }
 
-                        })
-                } else {
-                    //  receiveMessageReq(receiverId)
-                }
-            }.addOnFailureListener {
-                Log.e(
-                    "Message", "Error receiving  message"
-                )
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.d("TAG", "onChildMoved: ")
+                        }
+
+                    })
             }
+        }.addOnFailureListener {
+            Log.e(
+                "Message", "Error receiving  message"
+            )
         }
+
     }
 
 
@@ -285,6 +287,109 @@ open class ChatViewModel : AuthViewModel() {
     fun clearMessage() {
         _messages.value = emptyList()
     }
+
+
+    // message edit
+
+    fun deleteIndividualMessage(chatId: String, messageId: String) {
+
+        chatRef.child(chatId).child("messages").child(messageId).removeValue()
+            .addOnCompleteListener {
+                // onResult()
+                Log.d("TAG", "deleteIndividualMessage: succ")
+            }.addOnFailureListener {
+                Log.d("TAG", "deleteIndividualMessage: failed")
+            }
+    }
+
+
+    fun listenForChats(receiverId: String) {
+
+        chatRef.addChildEventListener(object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val chatId = snapshot.key
+                if (chatId != null && chatId.contains(receiverId)) {
+                    val participants = chatId.split("+")
+
+                    if (participants.contains(receiverId)) {
+                        val newChat = Chats(chatId = chatId)
+                        val existingChat = _chats.value.find { it.chatId == chatId }
+
+                        getLastMessage(chatId) { lstMsg ->
+                            lstMsg?.let { newChat.lastMessage = it }
+                        }
+
+                        getParticipants(chatId) { prt ->
+                            newChat.participants = prt
+                        }
+
+                        if (existingChat == null || existingChat != newChat) {
+                            val updatedChats = _chats.value.toMutableList()
+                            if (existingChat != null) {
+                                val index = updatedChats.indexOfFirst { it.chatId == chatId }
+                                updatedChats[index] = newChat
+                            } else {
+                                updatedChats.add(newChat)
+                            }
+                            _chats.value = updatedChats
+
+                        }
+                    }
+                }
+            }
+
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                val chatId = snapshot.key
+                if (chatId != null && chatId.contains(receiverId)) {
+                    val participants = chatId.split("+")
+
+                    if (participants.size == 2 && participants.contains(receiverId)) {
+                        val updatedChat = Chats(chatId = chatId)
+                        val existingChat = _chats.value.find { it.chatId == chatId }
+
+                        // Correct approach
+                        getLastMessage(chatId) { lstMsg ->
+                            lstMsg?.let { updatedChat.lastMessage = it }
+                            getParticipants(chatId) { prt ->
+                                updatedChat.participants = prt
+                            }
+                        }
+                        if (existingChat != updatedChat) {
+                            // Only update if there's an actual change
+                            val updatedChats = _chats.value.toMutableList()
+                            val index = updatedChats.indexOfFirst { it.chatId == chatId }
+                            if (index >= 0) {
+                                updatedChats[index] = updatedChat
+                                _chats.value = updatedChats
+                            }
+                        }
+                    }
+                }
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                val chatId = snapshot.key
+                if (chatId != null) {
+                    // Remove the chat from the list
+                    val updatedChats = _chats.value.toMutableList()
+                    val index = updatedChats.indexOfFirst { it.chatId == chatId }
+
+                    if (index >= 0) {
+                        updatedChats.removeAt(index)
+                        _chats.value = updatedChats
+                    }
+                }
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatListener", "Error listening for chats: ${error.message}")
+            }
+        })
+    }
+
 
     fun getParticipants(
         chatId: String, onResult: (List<UserModel>) -> Unit
@@ -309,170 +414,6 @@ open class ChatViewModel : AuthViewModel() {
                     onResult(emptyList())
                 }
             })
-    }
-
-
-    // message edit
-
-    fun deleteIndividualMessage(chatId: String, messageId: String) {
-
-        chatRef.child(chatId).child("messages").child(messageId).removeValue()
-            .addOnCompleteListener {
-                // onResult()
-                Log.d("TAG", "deleteIndividualMessage: succ")
-            }.addOnFailureListener {
-                Log.d("TAG", "deleteIndividualMessage: failed")
-            }
-    }
-
-
-    // chat section
-    fun listenForChats(receiverId: String) {
-
-        viewModelScope.launch {
-            chatRef.addChildEventListener(object : ChildEventListener {
-                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                    val chatId = snapshot.key
-                    if (chatId != null && chatId.contains(receiverId)) {
-                        val participants = chatId.split("+")
-                        if (participants.contains(receiverId)) {
-                            val newChat = Chats(chatId = chatId)
-
-                            // Asynchronously fetch last message and then update the chat object
-                            getLastMessage(chatId) { lstMsg ->
-                                lstMsg?.let {
-                                    // Create a new chat object with the updated lastMessage
-                                    val updatedChat = newChat.copy(lastMessage = it)
-                                    // Update the chat list with the new chat
-                                    val updatedChats = _chats.value.toMutableList()
-                                    val index = updatedChats.indexOfFirst { chat -> chat.chatId == chatId }
-                                    if (index >= 0) {
-                                        updatedChats[index] = updatedChat
-                                        _chats.value = updatedChats
-                                    }
-                                }
-                            }
-
-                            getParticipants(chatId) { prt ->
-                                // Create a new chat object with updated participants
-                                val updatedChat = newChat.copy(participants = prt)
-                                val updatedChats = _chats.value.toMutableList()
-                                val index = updatedChats.indexOfFirst { chat -> chat.chatId == chatId }
-                                if (index >= 0) {
-                                    updatedChats[index] = updatedChat
-                                    _chats.value = updatedChats
-                                }
-                            }
-
-                            // Add the chat initially if it's not already present
-                            val updatedChats = _chats.value.toMutableList()
-                            val index = updatedChats.indexOfFirst { it.chatId == chatId }
-                            if (index >= 0) {
-                                updatedChats[index] = newChat
-                            } else {
-                                updatedChats.add(newChat)
-                            }
-                            _chats.value = updatedChats
-                        }
-                    }
-                }
-
-
-//                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-//                    val chatId = snapshot.key
-//                    if (chatId != null && chatId.contains(receiverId)) {
-//                        val participants = chatId.split("+")
-//
-//                        if (participants.contains(receiverId)) {
-//                            val newChat = Chats(chatId = chatId)
-//
-//                            getLastMessage(chatId) { lstMsg ->
-//                                lstMsg?.let {
-//                                    newChat.lastMessage = it
-//                                }
-//                            }
-//
-//                            getParticipants(chatId) { prt ->
-//                                newChat.participants = prt
-//                            }
-//
-//                            // Update the _contact list
-//                            val updatedChats = _chats.value.toMutableList()
-//                            val index = updatedChats.indexOfFirst {
-//                                it.chatId == chatId
-//                            }
-//                            if (index >= 0) {
-//                                updatedChats[index] = newChat
-//                            } else {
-//                                updatedChats.add(newChat)
-//                            }
-//                            _chats.value = updatedChats
-//                        }
-//                    }
-//                }
-
-
-                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                    val chatId = snapshot.key
-                    if (chatId != null && chatId.contains(receiverId)) {
-                        val participants = chatId.split("+")
-
-                        if (participants.size == 2 && participants.contains(receiverId)) {
-                            val updChat = Chats(chatId = chatId)
-
-                            // Correct approach
-                            getLastMessage(chatId) { lstMsg ->
-                                lstMsg?.let {
-                                    updChat.lastMessage =
-                                        it // This updates the value of the StateFlow
-                                }
-                            }
-
-                            getParticipants(chatId) { prt ->
-                                updChat.participants = prt
-                            }
-
-                            val updatedChats = _chats.value.toMutableList()
-                            val index = updatedChats.indexOfFirst { it.chatId == chatId }
-                            if (index >= 0) {
-                                updatedChats[index] = updChat
-                                _chats.value = updatedChats
-                            }
-                        }
-                    }
-                }
-
-                override fun onChildRemoved(snapshot: DataSnapshot) {
-                    val chatId = snapshot.key
-                    if (chatId != null) {
-                        // Remove the chat from the list
-                        val updatedChats = _chats.value.toMutableList()
-                        val index = updatedChats.indexOfFirst { it.chatId == chatId }
-                        if (index >= 0) {
-                            updatedChats.removeAt(index)
-                            _chats.value = updatedChats
-                        }
-                    }
-                }
-
-                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
-                    // Not needed for this use case
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("ChatListener", "Error listening for chats: ${error.message}")
-                }
-            })
-        }
-    }
-
-    private fun updateChatInState(updatedChat: Chats) {
-        val updatedChats = _chats.value.toMutableList()
-        val index = updatedChats.indexOfFirst { it.chatId == updatedChat.chatId }
-        if (index >= 0) {
-            updatedChats[index] = updatedChat
-            _chats.value = updatedChats
-        }
     }
 
     private fun getLastMessage(chatId: String, onResult: (Message?) -> Unit) {
@@ -508,10 +449,8 @@ open class ChatViewModel : AuthViewModel() {
 
         chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
             chatId = if (snapshot.exists()) {
-                // Return existing chat ID
                 snapshot.key.toString()
             } else {
-                // Chat ID does not exist, return the generated one
                 snapshot.key.toString()
             }
         }.addOnFailureListener {
@@ -576,7 +515,6 @@ open class ChatViewModel : AuthViewModel() {
 
     private fun find(search: String, onResult: (UserModel?) -> Unit) {
 
-
         userRef.orderByChild("email").equalTo(search)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -617,44 +555,8 @@ open class ChatViewModel : AuthViewModel() {
             })
     }
 
-    // send notification
-    fun checkForUnseenMessages(userId: String, context: Context) {
-        chatRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val unseenMessages = mutableListOf<Message>()
-                for (chatSnapshot in snapshot.children) {
-                    val messagesSnapshot = chatSnapshot.child("messages")
-                    for (messageSnapshot in messagesSnapshot.children) {
-                        val message = messageSnapshot.getValue(Message::class.java)
-                        if (message != null && !message.seen && message.receiverId == userId) {
-                            unseenMessages.add(message)
-                        }
-                    }
-                }
-
-                _unreadMessages.value = unseenMessages
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("ChatViewModel", "Error checking unseen messages: ${error.message}")
-            }
-        })
-    }
-
-    // Mark all messages in a chat as seen
-    fun markMessagesAsSeen(chatId: String, receiverId: String) {
-        chatRef.child(chatId).child("messages")
-            .orderByChild("receiverId")
-            .equalTo(receiverId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    for (child in snapshot.children) {
-                        child.ref.child("seen").setValue(true) // Update "seen" status
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
+    fun clearChats() {
+        _chats.value = emptyList()
     }
 
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -92,19 +93,38 @@ fun CreateGroupScreen(
             .padding(top = 20.dp)
     ) {
 
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.Start
+                .fillMaxSize()
+                .padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.vanishing_mode_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(150.dp)
+                )
+                TextDesign(
+                    text = "Create group for group messaging",
+                    size = 15,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+            Spacer(modifier = Modifier.height(30.dp))
 
-
-            TextDesign(text = "Create group", size = 18)
+            TextDesign(text = "Create group", size = 22)
             Spacer(modifier = Modifier.height(30.dp))
             Card(
                 colors = CardDefaults.cardColors(Color(0xD5C0D0F7)),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.clickable {
+                    grpViewModel.requestId {
+                        grpId = it
+                    }
+                }
             ) {
                 Row(
                     modifier = Modifier
@@ -236,9 +256,11 @@ fun CreateGroupScreen(
                                         GroupStatus.Loading -> {
 
                                         }
+
                                         GroupStatus.Failed -> {
 
                                         }
+
                                         null -> {
 
 

@@ -4,184 +4,172 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.annotation.RequiresApi
-
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.io.InputStream
-import java.io.OutputStream
 import java.security.KeyFactory
-import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
-import java.security.PublicKey
+import java.security.SecureRandom
+import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
-import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+object CryptoManager {
+    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+    private const val AES_KEY_SIZE = 256
+    private const val RSA_KEY_SIZE = 2048
+    private const val GCM_IV_LENGTH = 12
+    private const val GCM_TAG_LENGTH = 128
 
-@RequiresApi(Build.VERSION_CODES.O)
-object CryptoHelper {
-    // Generate RSA Key Pair
-    fun generateKeyPair(): KeyPair {
-        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-        keyPairGenerator.initialize(2048)
-        return keyPairGenerator.generateKeyPair()
+
+    // create keys
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun generateAndStoreRSAKeyPair(userUID: String): String {
+        val keyAlias = "RSA_Key_$userUID"
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+
+        // If key already exists, return public key
+        if (keyStore.containsAlias(keyAlias)) {
+            return getPublicKey(userUID)
+        }
+
+        val keyPairGenerator = KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEYSTORE
+        )
+
+        keyPairGenerator.initialize(
+            KeyGenParameterSpec.Builder(
+                keyAlias,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setKeySize(RSA_KEY_SIZE)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                .build()
+        )
+        keyPairGenerator.generateKeyPair()
+
+        return getPublicKey(userUID)
     }
 
-    // Encrypt with public key
-    fun encrypt(message: String, publicKey: PublicKey): String {
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        val encryptedBytes = cipher.doFinal(message.toByteArray(Charsets.UTF_8))
-        return Base64.getEncoder().encodeToString(encryptedBytes)
-    }
-
-    // Decrypt with private key
-    fun decrypt(encryptedMessage: String, privateKey: PrivateKey): String {
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        val encryptedBytes = Base64.getDecoder().decode(encryptedMessage)
-        val decryptedBytes = cipher.doFinal(encryptedBytes)
-        return String(decryptedBytes, Charsets.UTF_8)
-    }
-
-    // Convert public key to string
-    fun publicKeyToString(publicKey: PublicKey): String {
+    // retrieves the public key
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getPublicKey(userUID: String): String {
+        val keyAlias = "RSA_Key_$userUID"
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        val publicKey = keyStore.getCertificate(keyAlias)?.publicKey ?: return ""
         return Base64.getEncoder().encodeToString(publicKey.encoded)
     }
 
-    // Convert string to public key
-    fun stringToPublicKey(publicKeyString: String): PublicKey {
-        val keyBytes = Base64.getDecoder().decode(publicKeyString)
+    // retrieves the private key RSA
+    private fun getPrivateKey(userUID: String): PrivateKey? {
+        val keyAlias = "RSA_Key_$userUID"
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        val entry = keyStore.getEntry(keyAlias, null) as? KeyStore.PrivateKeyEntry
+        return entry?.privateKey
+    }
+
+    // encrypt aes key
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun encryptAESKey(aesKey: String, recipientPublicKeyBase64: String): String {
+        val keyBytes = Base64.getDecoder().decode(recipientPublicKeyBase64)
         val keySpec = X509EncodedKeySpec(keyBytes)
-        return KeyFactory.getInstance("RSA").generatePublic(keySpec)
-    }
-}
+        val publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
 
-
-class CryptoManager {
-
-    private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply {
-        load(null)
+        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        val encryptedKey = cipher.doFinal(aesKey.toByteArray())
+        return Base64.getEncoder().encodeToString(encryptedKey)
     }
 
-    // Generate or retrieve the RSA key pair
-    private fun getOrCreateKeyPair(): KeyPair {
-        val alias = "e2ee_keypair"
-        if (!keyStore.containsAlias(alias)) {
-            val keyPairGenerator = KeyPairGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_RSA,
-                "AndroidKeyStore"
-            )
-            keyPairGenerator.initialize(
-                KeyGenParameterSpec.Builder(
-                    alias,
-                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-                )
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-                    .setKeySize(2048)
-                    .build()
-            )
-            return keyPairGenerator.generateKeyPair()
-        }
-
-        val privateKey = keyStore.getKey(alias, null) as PrivateKey
-        val publicKey = keyStore.getCertificate(alias).publicKey
-        return KeyPair(publicKey, privateKey)
+    // decrypt aes key
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun decryptAESKey(encryptedAESKeyBase64: String, userUID: String): String? {
+        val privateKey = getPrivateKey(userUID) ?: return null
+        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
+        cipher.init(Cipher.DECRYPT_MODE, privateKey)
+        val decryptedKeyBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedAESKeyBase64))
+        return String(decryptedKeyBytes)
     }
 
-    // Retrieve the public key to share with others
-    fun getPublicKey(): ByteArray {
-        return getOrCreateKeyPair().public.encoded
+    // generates aes key
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun generateAESKey(): String {
+        val keyGen = KeyGenerator.getInstance("AES")
+        keyGen.init(AES_KEY_SIZE)
+        val secretKey = keyGen.generateKey()
+        return Base64.getEncoder().encodeToString(secretKey.encoded)
     }
 
-    // Encrypt a message using the recipient's public key
-    fun encryptMessageWithPublicKey(message: String, recipientPublicKey: ByteArray): ByteArray {
-        val publicKey =
-            KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(recipientPublicKey))
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding").apply {
-            init(Cipher.ENCRYPT_MODE, publicKey)
-        }
-        return cipher.doFinal(message.toByteArray())
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun encryptMessage(message: String, aesKeyBase64: String): String {
+        val keyBytes = Base64.getDecoder().decode(aesKeyBase64)
+        val keySpec = SecretKeySpec(keyBytes, "AES")
+
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val iv = ByteArray(GCM_IV_LENGTH)
+        SecureRandom().nextBytes(iv)
+
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
+        val encryptedBytes = cipher.doFinal(message.toByteArray())
+
+        // Store IV + CipherText
+        val combined = iv + encryptedBytes
+        return Base64.getEncoder().encodeToString(combined)
     }
 
-    // Decrypt a message using the private key
-    fun decryptMessageWithPrivateKey(encryptedMessage: ByteArray): String {
-        val privateKey = getOrCreateKeyPair().private
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding").apply {
-            init(Cipher.DECRYPT_MODE, privateKey)
-        }
-        return String(cipher.doFinal(encryptedMessage))
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun decryptMessage(encryptedMessageBase64: String, aesKeyBase64: String): String {
+        val keyBytes = Base64.getDecoder().decode(aesKeyBase64)
+        val keySpec = SecretKeySpec(keyBytes, "AES")
+
+        val decodedBytes = Base64.getDecoder().decode(encryptedMessageBase64)
+
+        // Extract IV
+        val iv = decodedBytes.copyOfRange(0, GCM_IV_LENGTH)
+        val encryptedBytes = decodedBytes.copyOfRange(GCM_IV_LENGTH, decodedBytes.size)
+
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
+
+        val decryptedBytes = cipher.doFinal(encryptedBytes)
+        return String(decryptedBytes)
     }
 
-    // Generate a random AES key
-    private fun generateSessionKey(): SecretKey {
-        return KeyGenerator.getInstance("AES").apply {
-            init(256) // AES-256
-        }.generateKey()
+    /** Store private key securely in Keystore **/
+    private fun storePrivateKey(uid: String, privateKey: PrivateKey) {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        val entry = KeyStore.PrivateKeyEntry(privateKey, null)
+        val params = KeyStore.PasswordProtection(null)
+        keyStore.setEntry("RSA_Key_$uid", entry, params)
     }
 
-    // Encrypt a message using the session key
-    fun encryptMessageWithSessionKey(message: String, outputStream: OutputStream): ByteArray {
-        val sessionKey = generateSessionKey()
-        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
-            init(Cipher.ENCRYPT_MODE, sessionKey)
-        }
+    /** Import an encrypted private key and store it securely **/
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun importPrivateKey(uid: String, encryptedKeyBase64: String, passphrase: String) {
+        val encryptedKey = Base64.getDecoder().decode(encryptedKeyBase64)
+        val decryptedKeyBytes =
+            decryptAESKey(String(encryptedKey), passphrase)?.toByteArray() ?: return
 
-        val iv = cipher.iv
-        val encryptedMessage = cipher.doFinal(message.toByteArray())
+        // Convert back to PrivateKey
+        val keySpec = PKCS8EncodedKeySpec(decryptedKeyBytes)
+        val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpec)
 
-        DataOutputStream(outputStream).use {
-            it.writeInt(iv.size)
-            it.write(iv)
-            it.writeInt(encryptedMessage.size)
-            it.write(encryptedMessage)
-        }
-
-        return sessionKey.encoded
+        // Store in Android Keystore
+        storePrivateKey(uid, privateKey)
     }
 
-    // Decrypt a message using the session key
-    fun decryptMessageWithSessionKey(sessionKeyBytes: ByteArray, inputStream: InputStream): String {
-        val sessionKey = SecretKeySpec(sessionKeyBytes, "AES")
+    /** Export a private key securely (AES encrypted) **/
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun exportPrivateKey(uid: String, passphrase: String): String? {
+        val privateKey = getPrivateKey(uid) ?: return null
+        val privateKeyBytes = privateKey.encoded
 
-        return DataInputStream(inputStream).use {
-            val ivSize = it.readInt()
-            val iv = ByteArray(ivSize)
-            it.readFully(iv)
-
-            val encryptedMessageSize = it.readInt()
-            val encryptedMessage = ByteArray(encryptedMessageSize)
-            it.readFully(encryptedMessage)
-
-            val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
-                init(Cipher.DECRYPT_MODE, sessionKey, IvParameterSpec(iv))
-            }
-            String(cipher.doFinal(encryptedMessage))
-        }
-    }
-
-    // Encrypt the session key using the recipient's public key
-    fun encryptSessionKey(sessionKey: ByteArray, recipientPublicKey: ByteArray): ByteArray {
-        val publicKey =
-            KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(recipientPublicKey))
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding").apply {
-            init(Cipher.ENCRYPT_MODE, publicKey)
-        }
-        return cipher.doFinal(sessionKey)
-    }
-
-    // Decrypt the session key using the private key
-    fun decryptSessionKey(encryptedSessionKey: ByteArray): ByteArray {
-        val privateKey = getOrCreateKeyPair().private
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding").apply {
-            init(Cipher.DECRYPT_MODE, privateKey)
-        }
-        return cipher.doFinal(encryptedSessionKey)
+        // Encrypt with AES before storing
+        val encryptedKey = encryptAESKey(String(privateKeyBytes), passphrase)
+        return Base64.getEncoder().encodeToString(encryptedKey.toByteArray())
     }
 }

@@ -234,14 +234,15 @@ fun PrivateChannelAuth(
                                 if (password.isNotEmpty() && channelId.isNotEmpty() && userId.isNotEmpty()) {
                                     isLoading = true
                                     privateChannelViewModel.joinChatroom(
-                                        chatId = channelId, passWord = password
+                                        chatId = channelId, passWord = password, uid = userId
                                     ) { isAllowed ->
                                         if (isAllowed) {
                                             isLoading = false
                                             navController.navigate(
                                                 Routes.PrivateChat(
                                                     channelId = channelId,
-                                                    password = password
+                                                    password = password,
+                                                    uid = userId
                                                 )
                                             )
                                         } else {
@@ -275,17 +276,18 @@ fun PrivateChannelAuth(
                     Button(
                         shape = RoundedCornerShape(8.dp),
                         onClick = {
-                            if (password.isNotEmpty() && channelId.isNotEmpty()) {
+                            if (password.isNotEmpty() && channelId.isNotEmpty() && userId.isNotEmpty()) {
                                 isLoading = true
                                 privateChannelViewModel.joinChatroom(
-                                    chatId = channelId, passWord = password
+                                    chatId = channelId, passWord = password, uid = userId
                                 ) { isAllowed ->
                                     if (isAllowed) {
                                         navController.navigate(
                                             Routes.PrivateChat(
                                                 channelId = channelId,
-                                                password = password
-                                            )
+                                                uid = userId, password = password,
+
+                                                )
                                         )
                                         isLoading = false
                                     } else {

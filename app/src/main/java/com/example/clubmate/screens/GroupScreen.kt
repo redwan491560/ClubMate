@@ -63,8 +63,6 @@ fun GroupScreen(
     var grpDetails by remember { mutableStateOf(Routes.GrpDetails()) }
 
     var text by remember { mutableStateOf("") }
-
-    var pendingImages by remember { mutableStateOf(mutableListOf<Pair<String, android.net.Uri>>()) }
     val context = LocalContext.current
 
 
@@ -74,7 +72,9 @@ fun GroupScreen(
         }
     }
 
-    DisposableEffect(Unit) { onDispose { grpViewmodel.clearMessage() } }
+    DisposableEffect(Unit) {
+        onDispose { grpViewmodel.clearMessage() }
+    }
 
     val grpActivity = grpViewmodel.grpActivity.collectAsState()
     LaunchedEffect(grpActivity.value) {

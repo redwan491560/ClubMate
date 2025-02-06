@@ -28,7 +28,8 @@ class Routes {
         val email: String = "",
         val username: String = "",
         val chatID: String = "",
-        val publicKey: String = ""
+        val publicKey: String = "",
+        val encryptedPrivateKey: String = ""
     )
 
     @Serializable
@@ -49,6 +50,7 @@ class Routes {
     @Serializable
     data class PrivateChat(
         val channelId: String,
+        val uid: String,
         val password: String
     )
 
@@ -156,5 +158,6 @@ data class UserModel(
     val phone: String = "",
     val uid: String = "",
     val username: String = "",
-    val publicKey: String = ""
+    val publicKey: String = "",
+    val encryptedPrivateKey: String = ""
 )

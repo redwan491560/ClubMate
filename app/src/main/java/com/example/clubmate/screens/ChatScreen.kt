@@ -48,7 +48,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.clubmate.R
@@ -68,7 +67,7 @@ fun ChatScreen(
     mainViewmodel: MainViewmodel
 ) {
 
-    val messages by chatViewmodel.messages.collectAsState()
+    val messages = chatViewmodel.messages.collectAsState()
 
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
@@ -76,28 +75,25 @@ fun ChatScreen(
 
 
     val receiverId = userModel.uid
-    val currentUser by chatViewmodel.currentUser.collectAsStateWithLifecycle()
+    val currentUser by chatViewmodel.currentUser.collectAsState()
 
 
-    LaunchedEffect(messages) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+    LaunchedEffect(messages.value) {
+        if (messages.value.isNotEmpty()) {
+            listState.animateScrollToItem(messages.value.size - 1)
         }
     }
 
 
     // notification part
     LaunchedEffect(Unit) {
-        chatViewmodel.markMessagesAsSeen(userModel.chatID, receiverId)
         listState.interactionSource
     }
 
     LaunchedEffect(userModel.uid, userModel.chatID) {
-        currentUser?.uid?.let { it ->
+        currentUser?.uid?.let {
             chatViewmodel.receiveMessage(
-                chatId = userModel.chatID,
-                context = context,
-                recieverId = it
+                chatId = userModel.chatID
             )
         }
     }
@@ -154,7 +150,7 @@ fun ChatScreen(
 
                             TextDesignClickable(text = "View Profile", size = 14) {
                                 chatViewmodel.fetchUserByUid(receiverId) { user ->
-                                    user?.let { it ->
+                                    user?.let {
                                         navController.navigate(
                                             Routes.UserDetails(
                                                 username = username,
@@ -208,7 +204,6 @@ fun ChatScreen(
             ) {
 
                 selectedImageUri?.let { uri ->
-
 
                     Row(
                         modifier = Modifier
@@ -343,15 +338,15 @@ fun ChatScreen(
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp, bottom = 40.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(messages.size) { ind ->
+                    items(messages.value.size) { ind ->
                         Spacer(modifier = Modifier.height(5.dp))
-                        val message = messages[ind]
+                        val message = messages.value[ind]
 
                         if (message.messageText.isNotEmpty() || message.imageRef.isNotEmpty()) {
                             MessageItem(
                                 message = message,
-                                isSent = messages[ind].senderId == user.uid,
-                                time = chatViewmodel.convertTimestampToDate(messages[ind].timestamp),
+                                isSent = messages.value[ind].senderId == user.uid,
+                                time = chatViewmodel.convertTimestampToDate(messages.value[ind].timestamp),
                                 onDeleteMessage = { msg ->
                                     chatViewmodel.deleteIndividualMessage(
                                         chatId = userModel.chatID, messageId = msg.messageId

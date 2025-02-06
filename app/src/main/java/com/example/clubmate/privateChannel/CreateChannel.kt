@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -59,17 +60,32 @@ fun CreatePrivateChannelScreen(
 
 
     var password by remember { mutableStateOf("") }
+    var userId by remember { mutableStateOf("") }
     var channelId by remember { mutableStateOf("") }
 
     val context = LocalContext.current
 
-    Scaffold(
-        modifier = Modifier
-            .background(Color(0xFF2A3150))
-            .systemBarsPadding()
-            .fillMaxSize()
-            .padding(top = 20.dp)
-    ) {
+    Scaffold(modifier = Modifier
+        .background(Color(0xFF2A3150))
+        .systemBarsPadding()
+        .fillMaxSize()
+        .padding(top = 20.dp), topBar = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 15.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Image(painter = painterResource(id = R.drawable.failed),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(Color.White),
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable {
+                        // expand the animated visibility for the instruction
+                    })
+        }
+    }) {
 
         Column(
             modifier = Modifier
@@ -135,7 +151,36 @@ fun CreatePrivateChannelScreen(
                 }
             }
 
-
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xD5C0D0F7)),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (userId.isEmpty()) {
+                    Text(
+                        text = "Set a unique id",
+                        fontFamily = roboto,
+                        fontSize = 14.sp,
+                        color = Color.Black,
+                        modifier = Modifier.padding(start = 15.dp)
+                    )
+                }
+                BasicTextField(
+                    value = userId, onValueChange = {
+                        userId = it
+                    }, modifier = Modifier
+                        .padding(15.dp)
+                        .fillMaxWidth(), textStyle = TextStyle(
+                        fontFamily = roboto, fontSize = 16.sp, color = Color.Black
+                    ), maxLines = 1, keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Next
+                    )
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +192,7 @@ fun CreatePrivateChannelScreen(
             ) {
                 if (password.isEmpty()) {
                     Text(
-                        text = "Set Password",
+                        text = "Set a strong password",
                         fontFamily = roboto,
                         fontSize = 14.sp,
                         color = Color.Black,
@@ -167,6 +212,7 @@ fun CreatePrivateChannelScreen(
                 )
             }
 
+
             Spacer(modifier = Modifier.height(25.dp))
 
             Column(
@@ -179,20 +225,18 @@ fun CreatePrivateChannelScreen(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.width(130.dp),
                     onClick = {
-                        if (channelId.isEmpty() || password.isEmpty()) {
+                        if (channelId.isEmpty() || userId.isEmpty() || password.isEmpty()) {
                             Toast.makeText(
-                                context,
-                                "Channel id and Password cannot be empty",
-                                Toast.LENGTH_SHORT
+                                context, "All fields must be filled", Toast.LENGTH_SHORT
                             ).show()
                         } else {
                             viewmodel.createChatroom(
-                                chatId = channelId, passWord = password
+                                chatId = channelId, passWord = password, uid = userId
                             ) { details ->
                                 if (details != null) {
                                     navController.navigate(
                                         Routes.PrivateChat(
-                                            channelId = channelId, password = password
+                                            channelId = channelId, uid = userId, password = password
                                         )
                                     )
                                 } else {
@@ -202,7 +246,6 @@ fun CreatePrivateChannelScreen(
                             }
                         }
                     }) {
-
                     TextDesign(text = "Create")
                 }
             }

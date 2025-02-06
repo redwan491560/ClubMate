@@ -42,7 +42,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -105,7 +107,8 @@ fun MainScreen(
     val currentUserId = currentUser.value?.uid
 
     LaunchedEffect(Unit) {
-        if (authState.value == Status.NotAuthenticated) navController.navigate(Routes.Login)
+        if (authState.value == Status.NotAuthenticated)
+            navController.navigate(Routes.Login)
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -118,32 +121,33 @@ fun MainScreen(
     val user = chatViewmodel.user
     val group = grpViewmodel.group
 
-    val chips = listOf("contacts", "groups")
+    val chips = listOf("Contacts", "Groups")
     var chipsState by rememberSaveable { mutableIntStateOf(0) }
 
 
     var expanded by remember { mutableStateOf(false) }
     val animationDuration = 300
 
-
     val chatsList = chatViewmodel.chats.collectAsStateWithLifecycle()
     val groupsList = grpViewmodel.groupsList.collectAsStateWithLifecycle()
 
-    LaunchedEffect(groupsList) {
+    LaunchedEffect(groupsList.value) {
         currentUser.value?.let {
             grpViewmodel.listenForGroups(it.uid)
         }
     }
 
-    // notification
-    LaunchedEffect(Unit) {
-        currentUserId?.let {
-            chatViewmodel.checkForUnseenMessages(it, context)
-        }
-    }
-    LaunchedEffect(chatsList) {
+
+    LaunchedEffect(chatsList.value, chipsState) {
         currentUser.value?.let {
             chatViewmodel.listenForChats(currentUser.value!!.uid)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            chatViewmodel.clearChats()
+            grpViewmodel.clearGroups()
         }
     }
 
@@ -302,14 +306,16 @@ fun MainScreen(
                                         })
                             }
                         }
-                        Image(painter = painterResource(id = R.drawable.manage_grp),
+                        Image(
+                            painter = painterResource(id = R.drawable.manage_grp),
                             contentDescription = null,
                             modifier = Modifier
                                 .padding(bottom = 10.dp)
                                 .size(45.dp)
                                 .clickable {
                                     expanded = !expanded
-                                })
+                                }
+                        )
                     }
                 }
             }
@@ -588,7 +594,7 @@ fun MainScreen(
                         ) {
                             chips.forEachIndexed { index, s ->
                                 Text(text = s,
-                                    fontSize = 17.sp,
+                                    fontSize = 18.sp,
                                     color = if (chipsState == index) Color.Blue else Color.Black,
                                     textDecoration = if (chipsState == index) TextDecoration.Underline
                                     else TextDecoration.None,
@@ -603,15 +609,20 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(15.dp))
 
                     if (isOnline) {
-                        if (chipsState == 0) {
-                            if (chatsList.value.isNotEmpty()) {
+                        val sortedChats by remember {
+                            derivedStateOf {
+                                chatsList.value.sortedByDescending { it.lastMessage?.timestamp }
+                            }
+                        }
 
+                        if (chipsState == 0) {
+                            if (sortedChats.isNotEmpty()) {
                                 LazyColumn(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
 
-                                    items(chatsList.value.sortedByDescending {
+                                    items(sortedChats.sortedByDescending {
                                         it.lastMessage?.timestamp
                                     }) { item ->
                                         val receiver = item.participants.find {
