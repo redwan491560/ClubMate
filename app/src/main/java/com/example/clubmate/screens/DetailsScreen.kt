@@ -217,7 +217,7 @@ fun ButtonDesignDetailsScreen(src: Painter, title: String, onClick: () -> Unit) 
     Card(
         shape = RoundedCornerShape(6.dp),
         modifier = Modifier
-            .width(80.dp)
+            .width(100.dp)
             .clickable {
                 onClick()
             }
@@ -233,9 +233,11 @@ fun ButtonDesignDetailsScreen(src: Painter, title: String, onClick: () -> Unit) 
                 painter = src,
                 contentDescription = null,
                 modifier = Modifier
+                    .padding(top = 5.dp)
                     .size(25.dp)
             )
-            TextDesign(text = title, size = 14)
+            Spacer(modifier = Modifier.height(10.dp))
+            TextDesign(text = title, size = 16)
         }
     }
 

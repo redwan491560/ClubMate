@@ -6,12 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.example.clubmate.db.GroupState
 import com.example.clubmate.db.Routes
-import com.example.clubmate.db.UserModel
 import com.example.clubmate.db.UserState
 import com.example.clubmate.util.Category
 import com.example.clubmate.util.group.GroupMessage
@@ -33,7 +33,7 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.coroutines.resume
 
-class GroupViewmodel : AuthViewModel() {
+class GroupViewmodel : ViewModel() {
 
     private val _db = FirebaseDatabase.getInstance()
     private val grpRef = _db.getReference("groups")
@@ -48,7 +48,7 @@ class GroupViewmodel : AuthViewModel() {
 
 
     // fetches he searched result
-    var user by mutableStateOf<UserModel?>(UserModel())
+    var user by mutableStateOf<Routes.UserModel?>(Routes.UserModel())
     var group by mutableStateOf<Routes.GrpDetails?>(Routes.GrpDetails())
 
 
@@ -83,12 +83,12 @@ class GroupViewmodel : AuthViewModel() {
     }
 
 
-    fun fetchUserDetailsByUid(uid: String, onResult: (UserModel?) -> Unit) {
+    fun fetchUserDetailsByUid(uid: String, onResult: (Routes.UserModel?) -> Unit) {
 
         userRef.child(uid).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
-                    val user = snapshot.getValue(UserModel::class.java)
+                    val user = snapshot.getValue(Routes.UserModel::class.java)
                     user?.let {
                         onResult(user)
                     }
@@ -888,14 +888,14 @@ class GroupViewmodel : AuthViewModel() {
         _grpActivity.value = emptyList()
     }
 
-    private fun find(search: String, onResult: (UserModel?) -> Unit) {
+    private fun find(search: String, onResult: (Routes.UserModel?) -> Unit) {
 
         userRef.orderByChild("email").equalTo(search)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()) {
                         for (childSnapshot in snapshot.children) {
-                            val usr = childSnapshot.getValue(UserModel::class.java)
+                            val usr = childSnapshot.getValue(Routes.UserModel::class.java)
                             onResult(usr)
                             return
                         }
@@ -905,7 +905,7 @@ class GroupViewmodel : AuthViewModel() {
                                 override fun onDataChange(snapshot: DataSnapshot) {
                                     if (snapshot.exists()) {
                                         for (childSnapshot in snapshot.children) {
-                                            val usr = childSnapshot.getValue(UserModel::class.java)
+                                            val usr = childSnapshot.getValue(Routes.UserModel::class.java)
                                             onResult(usr)
                                             return
                                         }

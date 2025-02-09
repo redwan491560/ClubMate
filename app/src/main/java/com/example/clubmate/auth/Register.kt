@@ -1,6 +1,8 @@
 package com.example.clubmate.auth
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,11 +49,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.Status
@@ -60,6 +60,7 @@ import com.example.clubmate.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostController) {
 
@@ -208,7 +209,13 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                     else PasswordVisualTransformation(),
                     keyboardActions = KeyboardActions(onDone = {
                         isLoading = true
-                        authViewmodel.register(email, password, userName, phone) {
+                        authViewmodel.register(
+                            email = email,
+                            password = password,
+                            userName = userName,
+                            phone = phone,
+                            context = context
+                        ) {
                             isLoading = false
                             navController.navigate(Routes.Login)
                         }
@@ -263,10 +270,11 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
                                 email = email,
                                 password = password,
                                 userName = userName,
-                                phone = phone
+                                phone = phone,
+                                context = context
                             ) { state ->
                                 if (!state) isLoading = false
-                                else{
+                                else {
                                     isLoading = false
                                     navController.navigate(Routes.Login)
                                 }
@@ -318,13 +326,4 @@ fun RegisterScreen(authViewmodel: AuthViewModel, navController: NavHostControlle
             Spacer(modifier = Modifier.height(25.dp))
         }
     }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun Sheet() {
-    val context = LocalContext.current
-    RegisterScreen(
-        authViewmodel = AuthViewModel(), navController = rememberNavController()
-    )
 }

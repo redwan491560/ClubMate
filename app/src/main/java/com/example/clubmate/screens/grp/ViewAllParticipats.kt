@@ -45,6 +45,7 @@ import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.ui.theme.ItemDesignAlert
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.util.group.MemberDesign
+import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.GroupViewmodel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -52,10 +53,11 @@ import com.example.clubmate.viewmodel.GroupViewmodel
 fun ViewAllParticipants(
     grpInfo: Routes.ViewAllUser,
     grpViewmodel: GroupViewmodel,
+    authViewModel: AuthViewModel,
     navController: NavHostController
 ) {
 
-    val currentUser = grpViewmodel.currentUser
+    val currentUser = authViewModel.currentUser
     // returns the searched user
     val membersList = grpViewmodel.participantsList.collectAsState()
     val scrollState = rememberLazyListState()

@@ -1,175 +1,169 @@
 package com.example.clubmate.crypto_manager
 
+import android.content.Context
 import android.os.Build
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
+import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
-import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.SecureRandom
 import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+
 object CryptoManager {
-    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-    private const val AES_KEY_SIZE = 256
+
+    // --- Constants ---
     private const val RSA_KEY_SIZE = 2048
-    private const val GCM_IV_LENGTH = 12
-    private const val GCM_TAG_LENGTH = 128
+    private const val GCM_IV_LENGTH = 12      // 12 bytes is recommended for GCM IV
+    private const val GCM_TAG_LENGTH = 128    // in bits
 
-
-    // create keys
+    /**
+     * Called during user registration.
+     *
+     * Generates a new RSA key pair using the provided UID.
+     * The private key is encrypted with the user's password and both keys are stored in secure
+     * EncryptedSharedPreferences.
+     *
+     * @param context Android context (needed for accessing SharedPreferences)
+     * @param userUID A unique identifier for the user.
+     * @param password The user's password used to encrypt the private key.
+     * @return A Pair containing the public key (Base64 encoded) and the encrypted private key (Base64 encoded).
+     */
     @RequiresApi(Build.VERSION_CODES.O)
-    fun generateAndStoreRSAKeyPair(userUID: String): String {
-        val keyAlias = "RSA_Key_$userUID"
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+    fun getBothKeys(context: Context, userUID: String, password: String): Pair<String, String> {
+        val prefs = getSecurePrefs(context)
 
-        // If key already exists, return public key
-        if (keyStore.containsAlias(keyAlias)) {
-            return getPublicKey(userUID)
+        // Check if keys already exist for the user
+        val existingPublicKey = prefs.getString("public_key_$userUID", null)
+        val existingEncryptedPrivateKey = prefs.getString("private_key_$userUID", null)
+
+        if (existingPublicKey != null && existingEncryptedPrivateKey != null) {
+            Log.d("CryptoManager", "Keys already exist for UID: $userUID")
+            return Pair(existingPublicKey, existingEncryptedPrivateKey)
         }
 
-        val keyPairGenerator = KeyPairGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEYSTORE
-        )
+        // 1. Generate a new RSA key pair (using the default provider)
+        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+        keyPairGenerator.initialize(RSA_KEY_SIZE)
+        val keyPair = keyPairGenerator.generateKeyPair()
 
-        keyPairGenerator.initialize(
-            KeyGenParameterSpec.Builder(
-                keyAlias,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            )
-                .setKeySize(RSA_KEY_SIZE)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .build()
-        )
-        keyPairGenerator.generateKeyPair()
+        // 2. Convert public key to Base64 string
+        val publicKeyBase64 = Base64.getEncoder().encodeToString(keyPair.public.encoded)
 
-        return getPublicKey(userUID)
+        // 3. Encrypt the private key with the user's password.
+        // Use a binary-safe charset (ISO_8859_1) to convert the bytes to string without data loss.
+        val privateKeyBytes = keyPair.private.encoded
+        val privateKeyString = String(privateKeyBytes, Charsets.ISO_8859_1)
+        val encryptedPrivateKey = encryptAESKey(privateKeyString, password)
+            ?: run {
+                Log.e("CryptoManager", "Failed to encrypt private key")
+                return Pair(publicKeyBase64, "")
+            }
+
+        // 4. Store both keys in EncryptedSharedPreferences
+        prefs.edit().apply {
+            putString("public_key_$userUID", publicKeyBase64)
+            putString("private_key_$userUID", encryptedPrivateKey)
+            apply()
+        }
+        Log.d("CryptoManager", "Generated and stored new keys for UID: $userUID")
+
+        // 5. Return both keys
+        return Pair(publicKeyBase64, encryptedPrivateKey)
     }
 
-    // retrieves the public key
+    /**
+     * Retrieves and decrypts the stored private key.
+     *
+     * @param context Android context.
+     * @param userUID The user identifier.
+     * @param password The user's password to decrypt the private key.
+     * @return The RSA PrivateKey, or null if decryption or reconstruction fails.
+     */
     @RequiresApi(Build.VERSION_CODES.O)
-    fun getPublicKey(userUID: String): String {
-        val keyAlias = "RSA_Key_$userUID"
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        val publicKey = keyStore.getCertificate(keyAlias)?.publicKey ?: return ""
-        return Base64.getEncoder().encodeToString(publicKey.encoded)
+    fun getDecryptedPrivateKey(context: Context, userUID: String, password: String): PrivateKey? {
+        val prefs = getSecurePrefs(context)
+        val encryptedPrivateKey = prefs.getString("private_key_$userUID", null) ?: return null
+        val decryptedKeyString = decryptAESKey(encryptedPrivateKey, password) ?: return null
+
+        // Convert the decrypted string back to bytes using the same charset used for encryption.
+        val keyBytes = decryptedKeyString.toByteArray(Charsets.ISO_8859_1)
+        val keySpec = PKCS8EncodedKeySpec(keyBytes)
+        return try {
+            KeyFactory.getInstance("RSA").generatePrivate(keySpec)
+        } catch (e: Exception) {
+            Log.e("CryptoManager", "Failed to reconstruct private key", e)
+            null
+        }
     }
 
-    // retrieves the private key RSA
-    private fun getPrivateKey(userUID: String): PrivateKey? {
-        val keyAlias = "RSA_Key_$userUID"
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        val entry = keyStore.getEntry(keyAlias, null) as? KeyStore.PrivateKeyEntry
-        return entry?.privateKey
-    }
-
-    // encrypt aes key
+    /**
+     * Encrypts the provided plaintext (private key string) using AES/GCM with the user's password.
+     *
+     * @param plainText The string to encrypt.
+     * @param password The password used to derive the AES key.
+     * @return A Base64-encoded string containing the IV and the ciphertext, or null if encryption fails.
+     */
     @RequiresApi(Build.VERSION_CODES.O)
-    fun encryptAESKey(aesKey: String, recipientPublicKeyBase64: String): String {
-        val keyBytes = Base64.getDecoder().decode(recipientPublicKeyBase64)
-        val keySpec = X509EncodedKeySpec(keyBytes)
-        val publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
-
-        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        val encryptedKey = cipher.doFinal(aesKey.toByteArray())
-        return Base64.getEncoder().encodeToString(encryptedKey)
+    fun encryptAESKey(plainText: String, password: String): String? {
+        return try {
+            // For demonstration, the AES key is directly derived from the password's UTF-8 bytes.
+            // In production, use a proper key derivation function (like PBKDF2) to generate a strong key.
+            val keySpec = SecretKeySpec(password.toByteArray(Charsets.UTF_8), "AES")
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            // Generate a random IV.
+            val iv = ByteArray(GCM_IV_LENGTH).apply { SecureRandom().nextBytes(this) }
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
+            val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+            // Prepend IV to ciphertext and encode to Base64.
+            Base64.getEncoder().encodeToString(iv + encryptedBytes)
+        } catch (e: Exception) {
+            Log.e("CryptoManager", "AES encryption failed", e)
+            null
+        }
     }
 
-    // decrypt aes key
+    /**
+     * Decrypts the provided Base64-encoded string (which contains the IV and ciphertext)
+     * using AES/GCM with the user's password.
+     *
+     * @param encryptedBase64 The Base64 encoded string containing IV and ciphertext.
+     * @param password The password to derive the AES key.
+     * @return The decrypted plaintext string, or null if decryption fails.
+     */
     @RequiresApi(Build.VERSION_CODES.O)
-    fun decryptAESKey(encryptedAESKeyBase64: String, userUID: String): String? {
-        val privateKey = getPrivateKey(userUID) ?: return null
-        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        val decryptedKeyBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedAESKeyBase64))
-        return String(decryptedKeyBytes)
+    fun decryptAESKey(encryptedBase64: String, password: String): String? {
+        return try {
+            val decodedBytes = Base64.getDecoder().decode(encryptedBase64)
+            val iv = decodedBytes.copyOfRange(0, GCM_IV_LENGTH)
+            val encryptedBytes = decodedBytes.copyOfRange(GCM_IV_LENGTH, decodedBytes.size)
+            val keySpec = SecretKeySpec(password.toByteArray(Charsets.UTF_8), "AES")
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
+            String(cipher.doFinal(encryptedBytes), Charsets.UTF_8)
+        } catch (e: Exception) {
+            Log.e("CryptoManager", "AES decryption failed", e)
+            null
+        }
     }
 
-    // generates aes key
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun generateAESKey(): String {
-        val keyGen = KeyGenerator.getInstance("AES")
-        keyGen.init(AES_KEY_SIZE)
-        val secretKey = keyGen.generateKey()
-        return Base64.getEncoder().encodeToString(secretKey.encoded)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun encryptMessage(message: String, aesKeyBase64: String): String {
-        val keyBytes = Base64.getDecoder().decode(aesKeyBase64)
-        val keySpec = SecretKeySpec(keyBytes, "AES")
-
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        val iv = ByteArray(GCM_IV_LENGTH)
-        SecureRandom().nextBytes(iv)
-
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
-        val encryptedBytes = cipher.doFinal(message.toByteArray())
-
-        // Store IV + CipherText
-        val combined = iv + encryptedBytes
-        return Base64.getEncoder().encodeToString(combined)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun decryptMessage(encryptedMessageBase64: String, aesKeyBase64: String): String {
-        val keyBytes = Base64.getDecoder().decode(aesKeyBase64)
-        val keySpec = SecretKeySpec(keyBytes, "AES")
-
-        val decodedBytes = Base64.getDecoder().decode(encryptedMessageBase64)
-
-        // Extract IV
-        val iv = decodedBytes.copyOfRange(0, GCM_IV_LENGTH)
-        val encryptedBytes = decodedBytes.copyOfRange(GCM_IV_LENGTH, decodedBytes.size)
-
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, keySpec, GCMParameterSpec(GCM_TAG_LENGTH, iv))
-
-        val decryptedBytes = cipher.doFinal(encryptedBytes)
-        return String(decryptedBytes)
-    }
-
-    /** Store private key securely in Keystore **/
-    private fun storePrivateKey(uid: String, privateKey: PrivateKey) {
-        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        val entry = KeyStore.PrivateKeyEntry(privateKey, null)
-        val params = KeyStore.PasswordProtection(null)
-        keyStore.setEntry("RSA_Key_$uid", entry, params)
-    }
-
-    /** Import an encrypted private key and store it securely **/
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun importPrivateKey(uid: String, encryptedKeyBase64: String, passphrase: String) {
-        val encryptedKey = Base64.getDecoder().decode(encryptedKeyBase64)
-        val decryptedKeyBytes =
-            decryptAESKey(String(encryptedKey), passphrase)?.toByteArray() ?: return
-
-        // Convert back to PrivateKey
-        val keySpec = PKCS8EncodedKeySpec(decryptedKeyBytes)
-        val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpec)
-
-        // Store in Android Keystore
-        storePrivateKey(uid, privateKey)
-    }
-
-    /** Export a private key securely (AES encrypted) **/
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun exportPrivateKey(uid: String, passphrase: String): String? {
-        val privateKey = getPrivateKey(uid) ?: return null
-        val privateKeyBytes = privateKey.encoded
-
-        // Encrypt with AES before storing
-        val encryptedKey = encryptAESKey(String(privateKeyBytes), passphrase)
-        return Base64.getEncoder().encodeToString(encryptedKey.toByteArray())
-    }
+    /**
+     * Helper function to retrieve an instance of EncryptedSharedPreferences.
+     */
+    private fun getSecurePrefs(context: Context) = EncryptedSharedPreferences.create(
+        context,
+        "SecurePrefs",
+        MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 }

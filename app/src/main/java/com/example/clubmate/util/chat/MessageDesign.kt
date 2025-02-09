@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -86,7 +87,10 @@ fun MessageItem(
                 ) {
                     if (message.imageRef.isNotEmpty()) {
                         // Display Image with preloading and caching
-                        Box(modifier = Modifier.size(250.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.width(300.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -97,10 +101,9 @@ fun MessageItem(
                             AsyncImage(
                                 model = message.imageRef,
                                 contentDescription = "Sent Image",
-                                contentScale = ContentScale.Crop,
+                                contentScale = ContentScale.Inside,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .size(200.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                                 error = painterResource(id = R.drawable.add_24px) // Error Image
                             )

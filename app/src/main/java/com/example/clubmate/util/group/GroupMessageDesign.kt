@@ -86,7 +86,10 @@ fun GroupActivityDesign(
                 ) {
                     if (activity.message.imageRef.isNotEmpty()) {
                         // Display Image with preloading and caching
-                        Box(modifier = Modifier.size(300.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.width(300.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -97,10 +100,9 @@ fun GroupActivityDesign(
                             AsyncImage(
                                 model = activity.message.imageRef,
                                 contentDescription = "Sent Image",
-                                contentScale = ContentScale.FillHeight,
+                                contentScale = ContentScale.Inside,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .size(300.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                                 error = painterResource(id = R.drawable.add_24px) // Error Image
                             )

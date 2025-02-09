@@ -5,10 +5,11 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
-import com.example.clubmate.db.UserModel
+import com.example.clubmate.db.Routes
 import com.example.clubmate.db.UserState
 import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.util.MessageType
@@ -27,7 +28,7 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-open class ChatViewModel : AuthViewModel() {
+open class ChatViewModel : ViewModel() {
 
     // db reference
     private val _db = FirebaseDatabase.getInstance()
@@ -53,17 +54,12 @@ open class ChatViewModel : AuthViewModel() {
         private set
 
     // fetches he searched result
-    var user by mutableStateOf<UserModel?>(UserModel())
+    var user by mutableStateOf<Routes.UserModel?>(Routes.UserModel())
 
 
-    init {
-        super.checkAuthenticationStatus()
-
-    }
-
-    private suspend fun fetchUsers(senderId: String, receiverId: String): List<UserModel> {
-        val users = mutableListOf<UserModel>()
-        suspend fun fetchUser(uid: String): UserModel? = suspendCoroutine { continuation ->
+    private suspend fun fetchUsers(senderId: String, receiverId: String): List<Routes.UserModel> {
+        val users = mutableListOf<Routes.UserModel>()
+        suspend fun fetchUser(uid: String): Routes.UserModel? = suspendCoroutine { continuation ->
             fetchUserByUid(uid) { user ->
                 continuation.resume(user)
             }
@@ -315,6 +311,8 @@ open class ChatViewModel : AuthViewModel() {
                         val newChat = Chats(chatId = chatId)
                         val existingChat = _chats.value.find { it.chatId == chatId }
 
+
+
                         getLastMessage(chatId) { lstMsg ->
                             lstMsg?.let { newChat.lastMessage = it }
                         }
@@ -392,16 +390,16 @@ open class ChatViewModel : AuthViewModel() {
 
 
     fun getParticipants(
-        chatId: String, onResult: (List<UserModel>) -> Unit
+        chatId: String, onResult: (List<Routes.UserModel>) -> Unit
     ) {
 
         chatRef.child(chatId).child("participants")
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val participants = mutableListOf<UserModel>()
+                    val participants = mutableListOf<Routes.UserModel>()
                     if (snapshot.exists()) {
                         for (child in snapshot.children) {
-                            val participant = child.getValue(UserModel::class.java)
+                            val participant = child.getValue(Routes.UserModel::class.java)
                             if (participant != null) {
                                 participants.add(participant)
                             }
@@ -492,12 +490,12 @@ open class ChatViewModel : AuthViewModel() {
         userState = UserState.Error(txt)
     }
 
-    fun fetchUserByUid(uid: String, callback: (UserModel?) -> Unit) {
+    fun fetchUserByUid(uid: String, callback: (Routes.UserModel?) -> Unit) {
 
         userRef.child(uid).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
-                    val userInfo = snapshot.getValue(UserModel::class.java)
+                    val userInfo = snapshot.getValue(Routes.UserModel::class.java)
                     callback(userInfo) // Return user information via the callback
                 } else {
                     Log.e("fetchUserInfoByUid", "No user found with UID: $uid")
@@ -513,14 +511,14 @@ open class ChatViewModel : AuthViewModel() {
     }
 
 
-    private fun find(search: String, onResult: (UserModel?) -> Unit) {
+    private fun find(search: String, onResult: (Routes.UserModel?) -> Unit) {
 
         userRef.orderByChild("email").equalTo(search)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()) {
                         for (childSnapshot in snapshot.children) {
-                            val usr = childSnapshot.getValue(UserModel::class.java)
+                            val usr = childSnapshot.getValue(Routes.UserModel::class.java)
                             onResult(usr)
                             return
                         }
@@ -530,7 +528,8 @@ open class ChatViewModel : AuthViewModel() {
                                 override fun onDataChange(snapshot: DataSnapshot) {
                                     if (snapshot.exists()) {
                                         for (childSnapshot in snapshot.children) {
-                                            val usr = childSnapshot.getValue(UserModel::class.java)
+                                            val usr =
+                                                childSnapshot.getValue(Routes.UserModel::class.java)
                                             onResult(usr)
                                             return
                                         }
@@ -565,6 +564,6 @@ open class ChatViewModel : AuthViewModel() {
 data class Chats(
     val chatId: String = "",
     var lastMessage: Message? = Message(),
-    var participants: List<UserModel> = listOf(UserModel())
+    var participants: List<Routes.UserModel> = listOf(Routes.UserModel())
 )
 

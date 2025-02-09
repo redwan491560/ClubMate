@@ -84,11 +84,12 @@ fun GroupScreen(
     val listState = rememberLazyListState()
     LaunchedEffect(Unit) { listState.interactionSource }
 
-    LaunchedEffect(grpActivity.value.size) {
+    LaunchedEffect(grpActivity.value) {
         if (grpActivity.value.isNotEmpty()) {
-            listState.animateScrollToItem(grpActivity.value.size - 1)
+            listState.scrollToItem(grpActivity.value.size - 1)
         }
     }
+
 
     var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val openGalleryLauncher =

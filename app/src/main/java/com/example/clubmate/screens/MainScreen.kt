@@ -44,7 +44,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -609,20 +608,15 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(15.dp))
 
                     if (isOnline) {
-                        val sortedChats by remember {
-                            derivedStateOf {
-                                chatsList.value.sortedByDescending { it.lastMessage?.timestamp }
-                            }
-                        }
 
                         if (chipsState == 0) {
-                            if (sortedChats.isNotEmpty()) {
+                            if (chatsList.value.isNotEmpty()) {
                                 LazyColumn(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
 
-                                    items(sortedChats.sortedByDescending {
+                                    items(chatsList.value.sortedByDescending {
                                         it.lastMessage?.timestamp
                                     }) { item ->
                                         val receiver = item.participants.find {

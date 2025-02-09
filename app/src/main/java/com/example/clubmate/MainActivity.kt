@@ -1,9 +1,12 @@
 package com.example.clubmate
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +45,11 @@ import com.example.clubmate.screens.grp.RemoveParticipant
 import com.example.clubmate.screens.grp.ViewAllParticipants
 import com.example.clubmate.screens.grp.ViewGroupUserDetailScreen
 import com.example.clubmate.ui.theme.ClubMateTheme
+import com.example.clubmate.util.group.AcceptRequestScreen
+import com.example.clubmate.util.group.BlockUserScreen
+import com.example.clubmate.util.group.ChangeRoles
+import com.example.clubmate.util.group.Console
+import com.example.clubmate.util.group.TimelineScreen
 import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.ChatViewModel
 import com.example.clubmate.viewmodel.GroupViewmodel
@@ -50,17 +58,21 @@ import com.example.clubmate.viewmodel.PrivateChannelViewModel
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
+    private val authViewModel: AuthViewModel by viewModels()
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+
             val authViewModel: AuthViewModel = viewModel()
             val chatViewModel: ChatViewModel = viewModel()
             val mainViewModel: MainViewmodel = viewModel()
             val grpViewmodel: GroupViewmodel = viewModel()
 
             ClubMateTheme(darkTheme = false) {
-
                 App(
                     authViewModel = authViewModel,
                     chatViewModel = chatViewModel,
@@ -73,6 +85,7 @@ class MainActivity : ComponentActivity() {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun App(
     authViewModel: AuthViewModel,
@@ -149,10 +162,10 @@ fun App(
                 userModel = args,
                 chatViewmodel = chatViewModel,
                 navController = navController,
+                authViewModel = authViewModel,
                 mainViewmodel = mainViewModel
             )
         }
-
 
 
         composable<Routes.UserDetails> {
@@ -174,6 +187,27 @@ fun App(
                 grpViewmodel = groupViewmodel
             )
         }
+        composable<Routes.Request> {
+            val args = it.toRoute<Routes.Request>()
+            AcceptRequestScreen(
+                args = args,
+                grpViewmodel = groupViewmodel
+            )
+        }
+        composable<Routes.Block> {
+            val args = it.toRoute<Routes.Block>()
+            BlockUserScreen(
+                args = args,
+                grpViewmodel = groupViewmodel
+            )
+        }
+        composable<Routes.ChangeRoles> {
+            val args = it.toRoute<Routes.ChangeRoles>()
+            ChangeRoles(
+                args = args,
+                grpViewmodel = groupViewmodel
+            )
+        }
 
         composable<Routes.RemoveUserFromGroup> {
             val args = it.toRoute<Routes.RemoveUserFromGroup>()
@@ -185,10 +219,21 @@ fun App(
             ViewAllParticipants(
                 grpInfo = args,
                 grpViewmodel = groupViewmodel,
-                navController = navController
+                navController = navController, authViewModel = authViewModel
             )
         }
-
+        composable<Routes.Console> {
+            val args = it.toRoute<Routes.Console>()
+            Console(args = args, grpViewmodel = groupViewmodel, navController = navController)
+        }
+        composable<Routes.Timeline> {
+            val args = it.toRoute<Routes.Timeline>()
+            TimelineScreen(
+                args = args,
+                grpViewmodel = groupViewmodel,
+                navHostController = navController
+            )
+        }
 
         composable<Routes.CreateGroup> {
             val args = it.toRoute<Routes.CreateGroup>()
@@ -271,3 +316,6 @@ fun App(
         }
     }
 }
+
+
+

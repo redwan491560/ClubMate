@@ -4,12 +4,10 @@ import android.app.Application
 import com.cloudinary.android.MediaManager
 import com.google.firebase.FirebaseApp
 
-
 class ClubMateApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
-
 
         val config: HashMap<String, String> = hashMapOf(
             "cloud_name" to "dkzfvsdfj",
@@ -18,7 +16,5 @@ class ClubMateApplication : Application() {
         )
 
         MediaManager.init(this, config)
-
     }
-
 }

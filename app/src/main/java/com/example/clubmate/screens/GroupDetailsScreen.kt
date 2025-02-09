@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
-import com.example.clubmate.db.UserModel
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
 import com.example.clubmate.viewmodel.GroupViewmodel
 
@@ -54,8 +53,15 @@ fun GroupDetailsScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
+    var currentUserIsAdmin by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        grpViewModel.checkAdmin(grpId = grpDetails.grpId, userId = uid) {
+            currentUserIsAdmin = it
+        }
+    }
 
-    var admin by remember { mutableStateOf(UserModel()) }
+
+    var admin by remember { mutableStateOf(Routes.UserModel()) }
 
     LaunchedEffect(Unit) {
         grpViewModel.fetchUserDetailsByUid(grpDetails.createdBy) { userInfo ->
@@ -160,37 +166,27 @@ fun GroupDetailsScreen(
                     horizontalArrangement = Arrangement.spacedBy(25.dp)
                 ) {
 
-
                     ButtonDesignDetailsScreen(
-                        src = painterResource(id = R.drawable.person_24px), title = "Add"
+                        src = painterResource(id = R.drawable.noticeboard), title = "Notice"
                     ) {
                         navController.navigate(
-                            Routes.AddUserToGroup(
-                                grpId = grpDetails.grpId
-                            )
+                            Routes.Timeline(grpId = grpDetails.grpId)
                         )
                     }
-
                     ButtonDesignDetailsScreen(
-                        src = painterResource(id = R.drawable.person_24px),
-                        title = "Remove"
+                        src = painterResource(id = R.drawable.terminal), title = "Terminal"
                     ) {
-                        navController.navigate(
-                            Routes.RemoveUserFromGroup(
-                                grpId = grpDetails.grpId
+                        if (currentUserIsAdmin) {
+                            navController.navigate(
+                                Routes.Console(
+                                    description = grpDetails.description,
+                                    grpId = grpDetails.grpId,
+                                    grpName = grpDetails.grpName, uid = uid
+                                )
                             )
-                        )
-                    }
-
-                    ButtonDesignDetailsScreen(
-                        src = painterResource(id = R.drawable.visibility_24px),
-                        title = "View all"
-                    ) {
-                        navController.navigate(
-                            Routes.ViewAllUser(
-                                grpId = grpDetails.grpId
-                            )
-                        )
+                        } else {
+                            launchToast(context, "Only admin can access this")
+                        }
                     }
                 }
 

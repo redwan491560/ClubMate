@@ -1,12 +1,16 @@
 package com.example.clubmate.viewmodel
 
 // Add these imports
+import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.clubmate.crypto_manager.CryptoManager
+import com.example.clubmate.db.Routes
 import com.example.clubmate.db.Status
-import com.example.clubmate.db.UserModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -17,7 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 
-open class AuthViewModel : ViewModel() {
+class AuthViewModel : ViewModel() {
 
     // auth
     private val _auth = FirebaseAuth.getInstance()
@@ -30,8 +34,8 @@ open class AuthViewModel : ViewModel() {
     val currentUser: StateFlow<FirebaseUser?> = _currentUser
 
 
-    private val _userData = MutableStateFlow<UserModel?>(null)
-    val userData: MutableStateFlow<UserModel?> = _userData
+    private val _userData = MutableStateFlow<Routes.UserModel?>(null)
+    val userData: MutableStateFlow<Routes.UserModel?> = _userData
 
 
     private val _authState = MutableLiveData<Status>()
@@ -65,6 +69,7 @@ open class AuthViewModel : ViewModel() {
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun logIn(email: String, password: String) {
 
         if (email.isBlank() || password.isBlank()) {
@@ -80,6 +85,28 @@ open class AuthViewModel : ViewModel() {
                     val curUser = _auth.currentUser
                     if (curUser != null) {
                         if (curUser.isEmailVerified) {
+
+                            userRef.child(curUser.uid).get()
+                                .addOnSuccessListener { snap ->
+                                    val encryptedPrivateKey =
+                                        snap.child("encryptedPrivateKey").value as? String
+
+                                    if (!encryptedPrivateKey.isNullOrBlank()) {
+                                        // Decrypt and store private key in Keystore
+                                        Log.d(
+                                            "CryptoManager",
+                                            "Private key successfully restored in Keystore"
+                                        )
+                                        _authState.value = Status.Authenticated
+                                        _currentUser.value = _auth.currentUser
+                                    } else {
+                                        Log.e("CryptoManager", "No encrypted private key found")
+                                    }
+                                }.addOnFailureListener { exception ->
+                                    _authState.value =
+                                        Status.Error("Failed to retrieve private key: ${exception.message}")
+                                }
+
                             _authState.value = Status.Authenticated
                             _currentUser.value = _auth.currentUser
                         } else {
@@ -95,31 +122,38 @@ open class AuthViewModel : ViewModel() {
             }.addOnFailureListener { exception ->
                 _authState.value = Status.Error(exception.message ?: "An error occurred")
             }
-
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun register2Realtime(
         email: String,
         phone: String,
         userName: String,
         uid: String,
+        context: Context,
+        password: String, // Pass password for encryption
         onSuccess: () -> Unit
     ) {
+        // Generate RSA Key Pair
+        val keyPair =
+            CryptoManager.getBothKeys(userUID = uid, password = password, context = context)
 
-        val userData = UserModel(
+        val userData = Routes.UserModel(
             username = userName,
-            phone = phone,
-            email = email,
+            phone = phone, email = email,
             uid = uid,
-            publicKey = "publicKeyString"
+            encryptedPrivateKey = keyPair.second, // Store encrypted private key
+            publicKey = keyPair.first // Store public key
         )
+        // Prepare user data with encrypted private key and public key
 
 
+        // Save to Firebase
         userRef.child(uid).setValue(userData)
             .addOnSuccessListener {
                 onSuccess()
-                Log.d("Auth Success", "User data saved to database")
+                Log.d("Auth Success", "User data saved to database with encryption")
             }
             .addOnFailureListener { exception ->
                 _authState.value = Status.Error(exception.message ?: "Failed to save user data")
@@ -127,9 +161,11 @@ open class AuthViewModel : ViewModel() {
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun register(
         email: String, password: String,
         userName: String,
+        context: Context,
         phone: String, onClick: (Boolean) -> Unit
     ) {
         if (email.isBlank() || password.isBlank() || phone.isBlank()) {
@@ -137,23 +173,30 @@ open class AuthViewModel : ViewModel() {
             onClick(false)
             return
         }
+
         if (!email.matches(emailRegex)) {
             _authState.value = Status.Error("Invalid email format")
             onClick(false)
             return
         }
+
         if (!password.matches(passwordRegex)) {
             _authState.value = Status.Error("Password does not meet requirements")
             onClick(false)
             return
         }
+
         _auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val user = _auth.currentUser
                     user?.sendEmailVerification()?.addOnCompleteListener { emailTask ->
                         if (emailTask.isSuccessful) {
-                            register2Realtime(email, phone, userName, user.uid) {
+                            register2Realtime(
+                                context = context, email = email,
+                                phone = phone, userName = userName,
+                                uid = user.uid, password = password
+                            ) {
                                 _currentUser.value = user
                                 onClick(true)
                             }
@@ -174,7 +217,7 @@ open class AuthViewModel : ViewModel() {
     }
 
 
-    open fun signOut() {
+    fun signOut() {
         _auth.signOut()
         _userData.value = null
         _currentUser.value = null
@@ -182,11 +225,11 @@ open class AuthViewModel : ViewModel() {
     }
 
 
-    private fun fetchUserData(uid: String, onResult: (UserModel?) -> Unit) {
+    private fun fetchUserData(uid: String, onResult: (Routes.UserModel?) -> Unit) {
 
         userRef.child(uid).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val userData = snapshot.getValue(UserModel::class.java)
+                val userData = snapshot.getValue(Routes.UserModel::class.java)
                 userData?.let {
                     onResult(userData)
                 }
@@ -196,9 +239,5 @@ open class AuthViewModel : ViewModel() {
                 onResult(null)
             }
         })
-
-
     }
-
-
 }

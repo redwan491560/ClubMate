@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,12 +25,8 @@ import com.example.clubmate.ui.theme.roboto
 @Composable
 fun ChatsDesign(reciever: String, lastMessage: String, uri: String, onClick: () -> Unit) {
 
-    var name by remember {
-        mutableStateOf(reciever)
-    }
-    var lastMsg by remember {
-        mutableStateOf(lastMessage)
-    }
+    val name by remember { mutableStateOf(reciever) }
+    val lastMsg by remember { mutableStateOf(lastMessage) }
 
     Card(modifier = Modifier
         .fillMaxWidth()

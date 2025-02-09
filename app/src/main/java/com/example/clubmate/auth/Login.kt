@@ -1,6 +1,8 @@
 package com.example.clubmate.auth
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,23 +48,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.Status
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.viewmodel.AuthViewModel
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun LoginScreen(authViewmodel: AuthViewModel, navController: NavHostController) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var visibility by remember { mutableStateOf(false) }
 
 
     val context = LocalContext.current
@@ -186,13 +186,6 @@ fun LoginScreen(authViewmodel: AuthViewModel, navController: NavHostController) 
             Spacer(modifier = Modifier.height(25.dp))
         }
     }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-private fun Sheet() {
-    val context = LocalContext.current
-    LoginScreen(authViewmodel = AuthViewModel(), navController = rememberNavController())
 }
 
 

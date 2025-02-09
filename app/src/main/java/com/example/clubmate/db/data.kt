@@ -27,6 +27,7 @@ class Routes {
         val uid: String = "",
         val email: String = "",
         val username: String = "",
+        val phone: String = "",
         val chatID: String = "",
         val publicKey: String = "",
         val encryptedPrivateKey: String = ""
@@ -88,6 +89,11 @@ class Routes {
         val grpId: String
     )
 
+    @Serializable
+    data class Request(
+        val uid: String, val grpId: String
+    )
+
 
     @Serializable
     data class RemoveUserFromGroup(
@@ -99,13 +105,35 @@ class Routes {
         val grpId: String
     )
 
+    @Serializable
+    data class Timeline(
+        val grpId: String
+    )
 
     @Serializable
-    object ChangeRoles
+    data class Console(
+        val grpId: String,
+        val grpName: String,
+        val image: String = "",
+        val description: String = "",
+        val uid: String
+    )
+
+
+    @Serializable
+    data class ChangeRoles(
+        val grpId: String, val uid: String
+    )
+
+    @Serializable
+    data class Block(
+        val uid: String, val grpId: String
+    )
 
     @Serializable
     data class GroupUserDetails(
-        val grpId: String, val grpName: String = "", val userId: String, val currentUserId: String
+        val grpId: String, val grpName: String = "",
+        val userId: String, val currentUserId: String
     )
 
 
@@ -133,7 +161,7 @@ class Routes {
 
 sealed class UserState {
     data object Loading : UserState()
-    data class Success(val user: UserModel?) : UserState()
+    data class Success(val user: Routes.UserModel?) : UserState()
     data class Error(val msg: String) : UserState()
 }
 
@@ -153,11 +181,11 @@ sealed class Status {
 
 
 // not final
-data class UserModel(
-    val email: String = "",
-    val phone: String = "",
-    val uid: String = "",
-    val username: String = "",
-    val publicKey: String = "",
-    val encryptedPrivateKey: String = ""
-)
+//data class UserModel(
+//    val email: String = "",
+//    val phone: String = "",
+//    val uid: String = "",
+//    val username: String = "",
+//    val publicKey: String = "",
+//    val encryptedPrivateKey: String = ""
+//)

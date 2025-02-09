@@ -18,24 +18,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.DevOpsCard
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
-import com.example.clubmate.ui.theme.roboto
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -70,20 +66,20 @@ fun DevelopersScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(15.dp)
             ) {
-               // Text(text = "", fontFamily = roboto, fontSize = 20.sp)
+                // Text(text = "", fontFamily = roboto, fontSize = 20.sp)
                 DevOpsCard(
                     name = "Redwan Hussain",
                     email = "redwan491560@gmail.com",
-                    post = "Project Lead",
+                    post = "Developer",
                     image = painterResource(id = R.drawable.redwan),
                     modifier = Modifier
                         .clip(RoundedCornerShape(50.dp))
                         .scale(3.3f)
                 )
                 DevOpsCard(
-                    name = "Md Mizanur Rahman",
-                    email = "@gmail.com",
-                    post = "System Designer",
+                    name = "Mizanur Rahman",
+                    email = "mizan21331@gmail.com",
+                    post = "Developer",
                     image = painterResource(id = R.drawable.mizan),
                     modifier = Modifier
                         .clip(RoundedCornerShape(50.dp))
@@ -91,8 +87,8 @@ fun DevelopersScreen(navController: NavController) {
                 )
                 DevOpsCard(
                     name = "Tonmoy Chanda",
-                    email = "@gmail.com",
-                    post = "Frontend Designer",
+                    email = "tonmoychanda07@gmail.com",
+                    post = "Developer",
                     image = painterResource(id = R.drawable.tonmoy),
                     modifier = Modifier
                         .clip(RoundedCornerShape(50.dp))
@@ -100,8 +96,8 @@ fun DevelopersScreen(navController: NavController) {
                 )
                 DevOpsCard(
                     name = "Abu Adnan Shad",
-                    email = "@gmail.com",
-                    post = "Backend designer",
+                    email = "adnanshad1035@gmail.com",
+                    post = "Developer",
                     image = painterResource(id = R.drawable.adnan),
                     modifier = Modifier
                         .clip(RoundedCornerShape(50.dp))

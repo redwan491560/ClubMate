@@ -55,6 +55,7 @@ import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.util.chat.MessageItem
+import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.ChatViewModel
 import com.example.clubmate.viewmodel.MainViewmodel
 
@@ -63,6 +64,7 @@ import com.example.clubmate.viewmodel.MainViewmodel
 fun ChatScreen(
     userModel: Routes.UserModel,
     chatViewmodel: ChatViewModel,
+    authViewModel: AuthViewModel,
     navController: NavController,
     mainViewmodel: MainViewmodel
 ) {
@@ -75,7 +77,7 @@ fun ChatScreen(
 
 
     val receiverId = userModel.uid
-    val currentUser by chatViewmodel.currentUser.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
 
     LaunchedEffect(messages.value) {
