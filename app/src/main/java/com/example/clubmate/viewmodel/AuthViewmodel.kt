@@ -2,12 +2,15 @@ package com.example.clubmate.viewmodel
 
 // Add these imports
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
 import com.example.clubmate.crypto_manager.CryptoManager
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.Status
@@ -76,7 +79,6 @@ class AuthViewModel : ViewModel() {
             _authState.value = Status.Error("Email and password cannot be empty")
             return
         }
-
 
         _authState.value = Status.Loading
         _auth.signInWithEmailAndPassword(email, password)
@@ -214,6 +216,56 @@ class AuthViewModel : ViewModel() {
                 onClick(false)
                 _authState.value = Status.Error(exception.message ?: "An error occurred")
             }
+    }
+
+    fun uploadImage(uid: String, uri: Uri, onComplete: (Boolean) -> Unit) {
+        uploadProfilePictureToStorage(uri, uid) { imageUrl ->
+            if (imageUrl.isNotEmpty()) {
+                saveProfilePictureToDatabase(uid, imageUrl, onComplete)
+            } else {
+                onComplete(false) // Upload failed
+            }
+        }
+    }
+
+    private fun uploadProfilePictureToStorage(imageUri: Uri, uid: String, onComplete: (String) -> Unit) {
+        MediaManager.get().upload(imageUri)
+            .option("folder", "profile_pics/$uid")
+            .callback(object : com.cloudinary.android.callback.UploadCallback {
+                override fun onStart(requestId: String?) {
+                    Log.d("Cloudinary", "Upload started")
+                }
+
+                override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
+                    Log.d("Cloudinary", "Uploading: $bytes/$totalBytes")
+                }
+
+                override fun onSuccess(requestId: String?, resultData: MutableMap<Any?, Any?>?) {
+                    val imageUrl = resultData?.get("secure_url") as? String
+                    if (imageUrl != null) {
+                        onComplete(imageUrl) // Return Cloudinary image URL
+                    } else {
+                        onComplete("") // Failed to retrieve URL
+                    }
+                }
+
+                override fun onError(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload failed: ${error?.description}")
+                    onComplete("")
+                }
+
+                override fun onReschedule(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled: ${error?.description}")
+                    onComplete("")
+                }
+            }).dispatch()
+    }
+
+    private fun saveProfilePictureToDatabase(uid: String, imageUrl: String, onComplete: (Boolean) -> Unit) {
+
+        userRef.child(uid).child("photoUrl").setValue(imageUrl)
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
     }
 
 

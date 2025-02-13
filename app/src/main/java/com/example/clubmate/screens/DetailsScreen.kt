@@ -2,13 +2,17 @@ package com.example.clubmate.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -18,23 +22,30 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
@@ -47,70 +58,81 @@ fun UserDetailsScreen(
     userDetails: Routes.UserDetails, navController: NavHostController, chatViewmodel: ChatViewModel
 ) {
 
-
+    val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
-    val context = LocalContext.current
-
-
-    Scaffold(topBar = {
-        Row(
-            modifier = Modifier
-                .systemBarsPadding()
-                .padding(start = 15.dp, top = 15.dp, bottom = 8.dp)
-        ) {
-            Image(imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = null,
-                modifier = Modifier.clickable {
-                    navController.popBackStack()
-                })
-            Spacer(modifier = Modifier.width(25.dp))
-            TextDesign(text = "User details", size = 18)
-        }
-    }, bottomBar = {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 30.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF5C0C0)),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.width(160.dp),
-                onClick = {
-
-                }) {
-                TextDesign(text = "Block Chat")
+    var details by remember { mutableStateOf(Routes.UserModel()) }
+    LaunchedEffect(Unit) {
+        chatViewmodel.fetchUserByUid(userDetails.uid) {
+            it?.let {
+                details = it
             }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFDF7F4)),
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .systemBarsPadding()
+                    .padding(start = 15.dp, top = 15.dp, bottom = 8.dp)
             ) {
-                TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF3DBDB)),
+                Image(imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.clickable {
+                        navController.popBackStack()
+                    })
+                Spacer(modifier = Modifier.width(25.dp))
+                TextDesign(text = "User details", size = 18)
+            }
+        }, bottomBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 30.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF5C0C0)),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.width(160.dp),
                     onClick = {
 
                     }) {
-                    TextDesign(text = "Report Chat")
+                    TextDesign(text = "Block Chat")
                 }
-
-                TextButton(
-                    onClick = {
-
-                    },
-                    colors = ButtonDefaults.buttonColors(Color.Red),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.width(160.dp),
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    TextDesign(text = "Delete Chat")
-                }
+                    TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF3DBDB)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.width(160.dp),
+                        onClick = {
 
+                        }) {
+                        TextDesign(text = "Report Chat")
+                    }
+
+                    TextButton(
+                        onClick = {
+
+                        },
+                        colors = ButtonDefaults.buttonColors(Color.Red),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.width(160.dp),
+                    ) {
+                        TextDesign(text = "Delete Chat")
+                    }
+
+                }
             }
-        }
-    }) {
+        }) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .background(Color(0xFFFDF7F4))
+                .fillMaxSize()
                 .padding(top = 60.dp)
         ) {
             Column(
@@ -120,11 +142,27 @@ fun UserDetailsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_primary),
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp)
-                )
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center),
+                        color = Color.Gray,
+                        strokeWidth = 4.dp
+                    )
+
+                    AsyncImage(
+                        model = details.photoUrl,
+                        contentDescription = "group photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(60.dp))
+                    )
+                }
+                Spacer(modifier = Modifier.heightIn(10.dp))
                 TextDesign(text = userDetails.username, size = 18)
                 TextDesign(text = userDetails.email, size = 15)
             }
@@ -217,7 +255,7 @@ fun ButtonDesignDetailsScreen(src: Painter, title: String, onClick: () -> Unit) 
     Card(
         shape = RoundedCornerShape(6.dp),
         modifier = Modifier
-            .width(100.dp)
+            .width(90.dp)
             .clickable {
                 onClick()
             }
@@ -225,7 +263,7 @@ fun ButtonDesignDetailsScreen(src: Painter, title: String, onClick: () -> Unit) 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(horizontal = 10.dp, vertical = 5.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

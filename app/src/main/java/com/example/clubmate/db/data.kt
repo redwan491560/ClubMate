@@ -30,12 +30,14 @@ class Routes {
         val phone: String = "",
         val chatID: String = "",
         val publicKey: String = "",
+        val photoUrl: String = "",
         val encryptedPrivateKey: String = ""
     )
 
     @Serializable
     data class UserDetails(
         val email: String = "",
+        val uid: String = "",
         val username: String = "",
         val chatID: String = "",
         val phone: String = ""
@@ -78,6 +80,7 @@ class Routes {
     data class GrpDetails(
         val grpId: String = "",
         val description: String = "",
+        val photoUrl: String = "",
         val grpName: String = "",
         val createdAt: Long = 0L,
         val createdBy: String = ""
@@ -91,7 +94,8 @@ class Routes {
 
     @Serializable
     data class Request(
-        val uid: String, val grpId: String
+        val uid: String,
+        var grpId: String
     )
 
 

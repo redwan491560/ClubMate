@@ -33,17 +33,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.screens.launchToast
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
-import com.example.clubmate.ui.theme.ItemDesignAlert
+import com.example.clubmate.ui.theme.ItemDesignAlertGroup
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.util.Category
 import com.example.clubmate.viewmodel.GroupViewmodel
@@ -85,10 +87,32 @@ fun AddParticipants(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
+                .padding(top = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TextDesign(text = "Add Members to ${grpDetails.grpName}", size = 17)
+
+            Box(
+                modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+            ) {
+
+
+                AsyncImage(
+                    model = grpDetails.photoUrl,
+                    contentDescription = "group photo",
+                    contentScale = ContentScale.Inside,
+                    error = painterResource(id = R.drawable.logo_primary),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .size(80.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            TextDesign(text = grpDetails.grpName, size = 17)
+            TextDesign(text = grpDetails.description, size = 17)
+
+
+            Spacer(modifier = Modifier.height(60.dp))
+            TextDesign(text = "Add Members", size = 17)
             Spacer(modifier = Modifier.height(20.dp))
             Box(
                 modifier = Modifier
@@ -130,27 +154,37 @@ fun AddParticipants(
                         })
             }
 
-            Column {
-                ItemDesignAlert(userState = grpViewmodel.userState)
+            Column(
+                modifier = Modifier.height(80.dp)
+            ) {
+                ItemDesignAlertGroup(userState = grpViewmodel.userState)
             }
             Row(
                 Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 Button(
                     onClick = {
-                        user?.email?.let {
-                            grpViewmodel.addParticipants(
-                                grpId = grpInfo.grpId,
-                                email = user.email,
-                                category = Category.General
-                            )
+                        if (query.isNotEmpty()) {
+                            user?.email?.let {
+                                grpViewmodel.addParticipants(
+                                    grpId = grpInfo.grpId,
+                                    email = user.email,
+                                    category = Category.General
+                                )
+                                launchToast(context = context, "participant added successfully")
+                                query = ""
+                                grpViewmodel.emptyUser()
+                            } ?: run {
+                                launchToast(context = context, "participant not found")
+
+                            }
+                        } else {
+                            launchToast(context = context, "query is empty")
                         }
-                        launchToast(context = context, "participant added successfully")
-                        query = ""
-                        grpViewmodel.emptyUser()
+
+
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(Color(0xFFBBF7B1))

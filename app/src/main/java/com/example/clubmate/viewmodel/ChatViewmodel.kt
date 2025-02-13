@@ -20,7 +20,10 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -48,6 +51,27 @@ open class ChatViewModel : ViewModel() {
     private val _chats = MutableStateFlow<List<Chats>>(emptyList())
     val chats: StateFlow<List<Chats>> = _chats
 
+    // search
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+
+    val filteredChats = combine(_chats, _searchQuery) { chats, query ->
+        if (query.isEmpty()) chats
+        else chats.filter { chat ->
+            chat.lastMessage?.messageText?.contains(query, ignoreCase = true) == true ||
+                    chat.participants.any { it.username.contains(query, ignoreCase = true) }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // Function to update search query
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setChats(newChats: List<Chats>) {
+        _chats.value = newChats
+    }
+    // search
 
     // userdata
     var userState by mutableStateOf<UserState>(UserState.Success(null))
@@ -566,4 +590,3 @@ data class Chats(
     var lastMessage: Message? = Message(),
     var participants: List<Routes.UserModel> = listOf(Routes.UserModel())
 )
-

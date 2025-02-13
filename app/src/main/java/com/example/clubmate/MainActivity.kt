@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,10 +41,10 @@ import com.example.clubmate.screens.MainScreen
 import com.example.clubmate.screens.UserDetailsScreen
 import com.example.clubmate.screens.grp.AddParticipants
 import com.example.clubmate.screens.grp.RemoveParticipant
+import com.example.clubmate.screens.grp.RequestScreen
 import com.example.clubmate.screens.grp.ViewAllParticipants
 import com.example.clubmate.screens.grp.ViewGroupUserDetailScreen
 import com.example.clubmate.ui.theme.ClubMateTheme
-import com.example.clubmate.util.group.AcceptRequestScreen
 import com.example.clubmate.util.group.BlockUserScreen
 import com.example.clubmate.util.group.ChangeRoles
 import com.example.clubmate.util.group.Console
@@ -59,7 +58,6 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
-    private val authViewModel: AuthViewModel by viewModels()
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,12 +94,12 @@ fun App(
     val navController: NavHostController = rememberNavController()
     val authState = authViewModel.authState.observeAsState()
 
+    val grpId = "47d383c5d9d0453abf1a"
+    val uid = "eWfnuKUneLTklQmjoBSGhS4IALI3"
 
     NavHost(
-        navController = navController,
-        startDestination = Routes.Splash
+        navController = navController, startDestination = Routes.Splash
     ) {
-
         composable<Routes.Splash> {
             LaunchedEffect(
                 authState.value
@@ -177,36 +175,23 @@ fun App(
             )
         }
 
-
         // group routes
 
         composable<Routes.AddUserToGroup> {
             val args = it.toRoute<Routes.AddUserToGroup>()
-            AddParticipants(
-                grpInfo = args,
-                grpViewmodel = groupViewmodel
-            )
+            AddParticipants(grpInfo = args, grpViewmodel = groupViewmodel)
         }
         composable<Routes.Request> {
             val args = it.toRoute<Routes.Request>()
-            AcceptRequestScreen(
-                args = args,
-                grpViewmodel = groupViewmodel
-            )
+            RequestScreen(args, groupViewmodel, navController)
         }
         composable<Routes.Block> {
             val args = it.toRoute<Routes.Block>()
-            BlockUserScreen(
-                args = args,
-                grpViewmodel = groupViewmodel
-            )
+            BlockUserScreen(args = args, grpViewmodel = groupViewmodel)
         }
         composable<Routes.ChangeRoles> {
             val args = it.toRoute<Routes.ChangeRoles>()
-            ChangeRoles(
-                args = args,
-                grpViewmodel = groupViewmodel
-            )
+            ChangeRoles(args = args, grpViewmodel = groupViewmodel, navController)
         }
 
         composable<Routes.RemoveUserFromGroup> {
@@ -219,7 +204,8 @@ fun App(
             ViewAllParticipants(
                 grpInfo = args,
                 grpViewmodel = groupViewmodel,
-                navController = navController, authViewModel = authViewModel
+                navController = navController,
+                authViewModel = authViewModel
             )
         }
         composable<Routes.Console> {
@@ -229,18 +215,14 @@ fun App(
         composable<Routes.Timeline> {
             val args = it.toRoute<Routes.Timeline>()
             TimelineScreen(
-                args = args,
-                grpViewmodel = groupViewmodel,
-                navHostController = navController
+                args = args, grpViewmodel = groupViewmodel, navHostController = navController
             )
         }
 
         composable<Routes.CreateGroup> {
             val args = it.toRoute<Routes.CreateGroup>()
             CreateGroupScreen(
-                user = args,
-                grpViewModel = groupViewmodel,
-                navController = navController
+                user = args, grpViewModel = groupViewmodel, navController = navController
             )
         }
         composable<Routes.GroupModel> {
@@ -266,9 +248,7 @@ fun App(
         composable<Routes.GroupUserDetails> {
             val args = it.toRoute<Routes.GroupUserDetails>()
             ViewGroupUserDetailScreen(
-                info = args,
-                grpViewmodel = groupViewmodel,
-                navController = navController
+                info = args, grpViewmodel = groupViewmodel, navController = navController
             )
         }
 
@@ -284,7 +264,8 @@ fun App(
             PrivateChannel(
                 uid = args.uid,
                 channelId = args.channelId,
-                viewModel = privateChannelViewModel, navController = navController
+                viewModel = privateChannelViewModel,
+                navController = navController
             )
         }
 
@@ -292,7 +273,6 @@ fun App(
             val viewmodel: PrivateChannelViewModel = viewModel()
             CreatePrivateChannelScreen(viewmodel = viewmodel, navController = navController)
         }
-
 
         // nav screens
 

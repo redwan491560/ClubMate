@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,11 +25,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.GroupState
 import com.example.clubmate.db.UserState
@@ -112,6 +115,58 @@ class Composables {
             }
         }
 
+        @Composable
+        fun ConsoleDetailsIcon(
+            title: String,
+            image: Painter? = null,
+            icon: ImageVector? = null,
+            number: String = "",
+            onClick: () -> Unit
+        ) {
+            Card(shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .padding(end = 15.dp)
+                    .clickable {
+                        onClick()
+                    }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (icon == null) {
+                            Image(
+                                painter = image!!,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(10.dp, 10.dp)
+                                    .size(25.dp)
+                            )
+                        } else {
+                            Image(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(10.dp, 10.dp)
+                                    .size(20.dp)
+                            )
+                        }
+                        Text(
+                            text = title, fontSize = 16.sp, modifier = Modifier.padding(5.dp)
+                        )
+                    }
+                    Text(
+                        text = number, fontSize = 22.sp,
+                        color = Color.Red,
+                        modifier = Modifier.padding(end = 15.dp)
+                    )
+                }
+            }
+        }
+
 
         @Composable
         fun AccountsCard(
@@ -154,7 +209,8 @@ class Composables {
                             .size(20.dp)
                             .clickable {
                                 onClick()
-                            })
+                            }
+                    )
                 }
             }
         }
@@ -208,6 +264,7 @@ class Composables {
         }
     }
 }
+
 
 @Composable
 fun ItemDesignAlert(userState: UserState) {
@@ -273,6 +330,85 @@ fun ItemDesignAlert(userState: UserState) {
     }
 }
 
+@Composable
+fun ItemDesignAlertGroup(userState: UserState) {
+
+    when (userState) {
+        UserState.Loading -> {
+            Row(
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                LinearProgressIndicator(strokeCap = ProgressIndicatorDefaults.LinearStrokeCap)
+            }
+        }
+
+        is UserState.Success -> {
+            val user = userState.user
+            user?.let {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFF493101)),
+                        colors = CardDefaults.cardColors(Color(0xFFEDF3E1))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            AsyncImage(
+                                model = it.photoUrl,
+                                contentDescription = "group photo",
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(id = R.drawable.logo_primary),
+                                modifier = Modifier
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    .width(60.dp)
+                                    .clip(RoundedCornerShape(30.dp))
+                            )
+
+                            Column(
+                                modifier = Modifier.padding(10.dp, 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                TextDesign(
+                                    text = "user:  " + it.username.replaceFirstChar {
+                                        if (it.isLowerCase()) it.titlecase(
+                                            Locale.ROOT
+                                        ) else it.toString()
+                                    }, size = 18
+                                )
+                                Text(
+                                    text = it.email,
+                                    fontSize = 15.sp,
+                                    fontFamily = roboto,
+                                    textDecoration = TextDecoration.Underline
+                                )
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        is UserState.Error -> {
+            Row(modifier = Modifier.padding(top = 8.dp, start = 8.dp)) {
+                TextDesign(text = userState.msg)
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ItemDesignGroupAlert(groupState: GroupState) {
@@ -284,13 +420,17 @@ fun ItemDesignGroupAlert(groupState: GroupState) {
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                LinearProgressIndicator(strokeCap = ProgressIndicatorDefaults.LinearStrokeCap)
+                LinearProgressIndicator(
+                    strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
         is GroupState.Success -> {
             val group = groupState.group
             group?.let {
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -304,23 +444,31 @@ fun ItemDesignGroupAlert(groupState: GroupState) {
                         border = BorderStroke(0.5.dp, Color(0xFF493101)),
                         colors = CardDefaults.cardColors(Color(0xFFEDF3E1))
                     ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp, 8.dp),
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TextDesign(
-                                text = "Name:  " + it.grpName.replaceFirstChar {
-                                    if (it.isLowerCase()) it.titlecase(Locale.ROOT)
-                                    else it.toString()
-                                },
-                                size = 18
-                            )
-                            Text(
-                                text = it.description,
-                                fontSize = 16.sp,
-                                maxLines = 1,
-                                fontFamily = roboto, overflow = TextOverflow.Ellipsis
-                            )
+
+                            Column(
+                                modifier = Modifier.padding(10.dp, 8.dp),
+                            ) {
+                                TextDesign(
+                                    text = "Name:  " + it.grpName.replaceFirstChar {
+                                        if (it.isLowerCase()) it.titlecase(Locale.ROOT)
+                                        else it.toString()
+                                    }, size = 18
+                                )
+                                Text(
+                                    text = it.description,
+                                    fontSize = 16.sp,
+                                    maxLines = 1,
+                                    fontFamily = roboto,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
                         }
+
                     }
                 }
             }

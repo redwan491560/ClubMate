@@ -31,17 +31,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.viewmodel.GroupActivity
+import com.example.clubmate.viewmodel.UserJoinDetails
 
 @Composable
 fun GroupActivityDesign(
     activity: GroupActivity,
-    sender: String,
+    sender: UserJoinDetails,
     isSent: Boolean,
     sentTime: String,
     sentDate: String,
@@ -65,13 +67,25 @@ fun GroupActivityDesign(
             Column(
                 horizontalAlignment = if (isSent) Alignment.End else Alignment.Start
             ) {
-                Text(
-                    text = sender, fontSize = 12.sp, fontFamily = roboto,
-                    modifier = Modifier
-                        .widthIn(max = 280.dp)
-                        .padding(end = if (isSent) 5.dp else 0.dp),
-                    color = Color.Black
-                )
+                Row {
+                    Text(
+                        text = sender.username, fontSize = 12.sp, fontFamily = roboto,
+                        modifier = Modifier
+                            .widthIn(max = 280.dp)
+                            .padding(end = if (isSent) 5.dp else 0.dp),
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = sender.userType.toString(), fontSize = 14.sp, fontFamily = roboto,
+                        modifier = Modifier
+                            .widthIn(max = 280.dp)
+                            .padding(end = if (isSent) 5.dp else 0.dp),
+                        color = Color.Red, textDecoration = TextDecoration.Underline
+                    )
+
+                }
+
                 Row(
                     verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
@@ -104,7 +118,6 @@ fun GroupActivityDesign(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(8.dp)),
-                                error = painterResource(id = R.drawable.add_24px) // Error Image
                             )
                         }
                     } else {

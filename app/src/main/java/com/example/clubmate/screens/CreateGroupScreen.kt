@@ -99,21 +99,20 @@ fun CreateGroupScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 30.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.vanishing_mode_logo),
+                    painter = painterResource(id = R.drawable.create_group),
                     contentDescription = null,
-                    modifier = Modifier.size(150.dp)
+                    modifier = Modifier.size(100.dp)
                 )
                 TextDesign(
                     text = "Create group for group messaging",
                     size = 15,
-                    modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             TextDesign(text = "Create group", size = 22)
             Spacer(modifier = Modifier.height(30.dp))

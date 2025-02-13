@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +20,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
@@ -53,6 +55,7 @@ import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.util.group.GroupActivityDesign
 import com.example.clubmate.viewmodel.GroupViewmodel
+import com.example.clubmate.viewmodel.UserJoinDetails
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "MutableCollectionMutableState")
 @Composable
@@ -72,9 +75,9 @@ fun GroupScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { grpViewmodel.clearMessage() }
-    }
+    DisposableEffect(Unit) { onDispose { grpViewmodel.clearMessage() } }
+
+    LaunchedEffect(Unit) { grpViewmodel.loadActivities(grpId) }
 
     val grpActivity = grpViewmodel.grpActivity.collectAsState()
     LaunchedEffect(grpActivity.value) {
@@ -86,7 +89,7 @@ fun GroupScreen(
 
     LaunchedEffect(grpActivity.value) {
         if (grpActivity.value.isNotEmpty()) {
-            listState.scrollToItem(grpActivity.value.size - 1)
+            listState.animateScrollToItem(grpActivity.value.lastIndex)
         }
     }
 
@@ -107,7 +110,7 @@ fun GroupScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp, 10.dp, 0.dp, 0.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFFF3E5E5))
                     .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -119,6 +122,15 @@ fun GroupScreen(
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    AsyncImage(
+                        model = grpDetails.photoUrl,
+                        contentDescription = "group photo",
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.logo_primary),
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(30.dp))
+                    )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
@@ -180,7 +192,7 @@ fun GroupScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 0.dp, vertical = 6.dp)
-                            .clip(RoundedCornerShape(8.dp, 8.dp, 0.dp, 0.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF3A4233)),
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -222,9 +234,7 @@ fun GroupScreen(
                                     .clickable {
                                         selectedImageUri = null
                                     },
-                                colorFilter = ColorFilter.tint(
-                                    Color(0xFFF0F0D3)
-                                )
+                                colorFilter = ColorFilter.tint(Color(0xFFF0F0D3))
                             )
                         }
                     }
@@ -233,7 +243,7 @@ fun GroupScreen(
 
                 OutlinedTextField(value = text,
                     onValueChange = { text = it },
-                    shape = RoundedCornerShape(0.dp, 0.dp, 6.dp, 6.dp),
+                    shape = RoundedCornerShape(10.dp),
                     maxLines = 3,
                     leadingIcon = {
                         Image(painter = painterResource(id = R.drawable.attachment_24px),
@@ -257,26 +267,24 @@ fun GroupScreen(
                                         grpViewmodel.addActivity(
                                             grpId = grpId,
                                             senderId = userId,
-                                            messageText = "", // Empty message text since we have an image
-                                            imageUri = imageUri // Pass the image URI as a string
+                                            messageText = "",
+                                            imageUri = imageUri
                                         )
                                     } ?: run {
-                                        // If no image, check if there's a text message
                                         if (sentMessage.isNotEmpty()) {
                                             grpViewmodel.addActivity(
                                                 grpId = grpId,
                                                 senderId = userId,
                                                 messageText = sentMessage,
-                                                imageUri = null // No image
+                                                imageUri = null
                                             )
-                                            text = "" // Clear the message input
+                                            text = ""
                                         } else {
                                             launchToast(context, "Message cannot be empty")
                                         }
                                     }
                                     selectedImageUri = null
                                 }
-
                         )
                     },
                     textStyle = TextStyle(fontFamily = roboto, fontSize = 18.sp),
@@ -303,32 +311,32 @@ fun GroupScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
                     .padding(start = 8.dp, top = 8.dp, end = 8.dp, bottom = 40.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
 
-                items(grpActivity.value.size) { ind ->
-                    Spacer(modifier = Modifier.height(5.dp))
-                    val activity = grpActivity.value[ind]
-                    var sender by remember { mutableStateOf("") }
-                    grpViewmodel.fetchUserDetailsByUid(activity.message.senderId) {
-                        sender = it?.username.toString()
-                    }
-
-                    if (activity.message.messageText.isNotEmpty() || activity.message.imageRef.isNotEmpty()) {
+                items(grpActivity.value.sortedBy {
+                    it.message.timestamp
+                }) { item ->
+                    if (item.message.messageText.isNotEmpty() || item.message.imageRef.isNotEmpty()) {
+                        var sender by remember { mutableStateOf(UserJoinDetails()) }
+                        grpViewmodel.getParticipantsDetails(grpId, item.message.senderId){
+                            it?.let{
+                                sender = it
+                            }
+                        }
                         GroupActivityDesign(
-                            activity = activity,
-                            isSent = activity.message.senderId == userId,
+                            activity = item,
+                            isSent = item.message.senderId == userId,
                             sender = sender,
-                            sentTime = grpViewmodel.convertTimestampToTime(activity.message.timestamp),
-                            sentDate = grpViewmodel.convertTimestampToDate(activity.message.timestamp),
+                            sentTime = grpViewmodel.convertTimestampToTime(item.message.timestamp),
+                            sentDate = grpViewmodel.convertTimestampToDate(item.message.timestamp),
                         ) { act ->
-                            if (activity.message.senderId == userId) grpViewmodel.removeActivity(
-                                activity = act
-                            )
+                            if (item.message.senderId == userId)
+                                grpViewmodel.removeActivity(activity = act, grpId = grpId)
                             else launchToast(context, "only admin and sender can delete message")
                         }
-
                     }
                 }
 

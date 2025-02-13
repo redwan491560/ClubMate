@@ -96,10 +96,8 @@ fun MainScreen(
     grpViewmodel: GroupViewmodel
 ) {
 
-
     var alertState by remember { mutableStateOf(false) }
     var grpState by remember { mutableStateOf(false) }
-
 
     val currentUser = authViewModel.currentUser
     val authState = authViewModel.authState
@@ -123,9 +121,8 @@ fun MainScreen(
     val chips = listOf("Contacts", "Groups")
     var chipsState by rememberSaveable { mutableIntStateOf(0) }
 
-
-    var expanded by remember { mutableStateOf(false) }
     val animationDuration = 300
+    var isSorted by remember { mutableStateOf(false) }
 
     val chatsList = chatViewmodel.chats.collectAsStateWithLifecycle()
     val groupsList = grpViewmodel.groupsList.collectAsStateWithLifecycle()
@@ -137,7 +134,7 @@ fun MainScreen(
     }
 
 
-    LaunchedEffect(chatsList.value, chipsState) {
+    LaunchedEffect(chatsList.value) {
         currentUser.value?.let {
             chatViewmodel.listenForChats(currentUser.value!!.uid)
         }
@@ -151,9 +148,10 @@ fun MainScreen(
     }
 
 
-    var isOnline by remember {
-        mutableStateOf(true)
-    }
+    var searchText by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    var isOnline by remember { mutableStateOf(true) }
 
     LaunchedEffect(context) {
         getInternetConnectionStatus(context).collect { isConnected ->
@@ -161,10 +159,23 @@ fun MainScreen(
         }
     }
 
+    val filteredChats = remember(searchText, chatsList.value) {
+        chatsList.value.filter {
+            it.participants[0].username.contains(searchText, ignoreCase = true) ||
+                    it.participants[1].username.contains(searchText, ignoreCase = true)
+        }
+    }
+    val filteredGroups = remember(searchText, chatsList.value) {
+        groupsList.value.filter {
+            it.grpName.contains(searchText, ignoreCase = true)
+        }
+    }
+
 
 
     ModalNavigationDrawer(drawerState = drawerState, gesturesEnabled = true, drawerContent = {
         ModalDrawerSheet(
+
             drawerShape = RoundedCornerShape(6.dp), modifier = Modifier.padding(8.dp)
         ) {
             NavBarItems(onAccount = { navController.navigate(Routes.Accounts) },
@@ -183,6 +194,8 @@ fun MainScreen(
 
         Scaffold(modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFFDF7F4))
+            .systemBarsPadding()
             .pointerInput(Unit) {
                 coroutineScope {
                     awaitPointerEventScope {
@@ -194,48 +207,95 @@ fun MainScreen(
                         }
                     }
                 }
-            }
-            .systemBarsPadding(), topBar = {
-            Row(
+            }, topBar = {
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 15.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .background(Color(0xFFFDF7F4))
+
             ) {
-                Text(
-                    text = "ClubMate",
-                    fontSize = 24.sp,
-                    fontFamily = roboto,
-                    textAlign = TextAlign.Start
-                )
-
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
-                    Image(painter = painterResource(id = R.drawable.private_channel),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clickable {
-                                // Execute a private unauthenticated channel
-                                navController.navigate(Routes.PrivateAuth)
-
-                            })
-                    Image(painter = painterResource(id = R.drawable.menubar),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clickable {
-                                scope.launch {
-                                    drawerState.open()
+                    Text(
+                        modifier = Modifier.padding(start = 5.dp),
+                        text = "ClubMate",
+                        fontSize = 24.sp,
+                        fontFamily = roboto,
+                        textAlign = TextAlign.Start
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.private_channel),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clickable {
+                                    navController.navigate(Routes.PrivateAuth)
                                 }
-                            })
+                        )
+
+                        Image(
+                            painter = painterResource(id = R.drawable.menubar),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clickable {
+                                    scope.launch {
+                                        drawerState.open()
+                                    }
+                                }
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .height(55.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(Color(0xFFC4F3B3)),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (searchText.isEmpty()) {
+                        Text(
+                            text = "Search...",
+                            fontFamily = roboto,
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 15.dp)
+                        )
+                    }
+                    BasicTextField(
+                        value = searchText, onValueChange = {
+                            searchText = it
+                        }, textStyle = TextStyle(
+                            fontFamily = roboto,
+                            fontSize = 16.sp,
+                            color = Color.Black
+                        ), maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 15.dp),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Done
+                        )
+                    )
                 }
             }
+
+
         }, floatingActionButton = {
 
             Row(
@@ -318,37 +378,72 @@ fun MainScreen(
                     }
                 }
             }
-        }, floatingActionButtonPosition = FabPosition.End
+        },
+            floatingActionButtonPosition = FabPosition.End
         ) {
+
+            // content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xfffaf9f6))
+                    .background(Color(0xFFFDF7F4))
                     .padding(10.dp)
             ) {
 
                 Column(
-                    modifier = Modifier.padding(top = 60.dp)
+                    modifier = Modifier.padding(top = 120.dp)
                 ) {
-
                     if (alertState && chipsState == 0) {
-                        AlertDialog(
-                            shape = RoundedCornerShape(15.dp), onDismissRequest = {
+
+                        AlertStateDesign(
+                            chatViewmodel = chatViewmodel,
+                            onStateChange = {
                                 alertState = false
+                            },
+                            searchValue = query,
+                            onSearchValueChange = { query = it },
+                            onAddClick = {
+                                currentUser.value?.uid?.let { uid ->
+                                    user?.let { user ->
+                                        if (user.uid.isNotEmpty()) {
+                                            chatViewmodel.initiateChat(
+                                                senderId = uid,
+                                                receiverId = user.uid,
+                                                message = ""
+                                            ) {
+
+                                            }
+                                            alertState = false
+                                            query = ""
+                                            chatViewmodel.emptyUser()
+                                        }
+                                    }
+                                }
+                            }) {
+                            alertState = false
+                            query = ""
+                            chatViewmodel.emptyUser()
+                        }
+
+                    }
+
+                    if (grpState && chipsState == 1) {
+                        AlertDialog(
+                            shape = RoundedCornerShape(15.dp),
+                            onDismissRequest = {
+                                grpState = false
                                 chatViewmodel.emptyUser()
                             }, confirmButton = {
 
                             }, title = {
                                 Box(
-                                    modifier = Modifier
-                                        .height(350.dp)
-                                        .width(450.dp)
+                                    modifier = Modifier.height(350.dp)
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        TextDesign(text = "Add chat to ClubMate", size = 17)
+                                        TextDesign(text = "Add groups to ClubMate", size = 17)
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -359,7 +454,7 @@ fun MainScreen(
                                         ) {
                                             if (query.isEmpty()) {
                                                 Text(
-                                                    text = "Search by name or email",
+                                                    text = "Join groups by id",
                                                     fontFamily = roboto,
                                                     fontSize = 14.sp,
                                                     color = Color.Black,
@@ -384,7 +479,7 @@ fun MainScreen(
                                                     imeAction = ImeAction.Done
                                                 ),
                                                 keyboardActions = KeyboardActions(onDone = {
-                                                    chatViewmodel.findUser(query)
+                                                    grpViewmodel.findGroup(query)
                                                 })
                                             )
                                             Image(painter = painterResource(id = R.drawable.search),
@@ -395,12 +490,12 @@ fun MainScreen(
                                                     .align(Alignment.CenterEnd)
                                                     .rotate(270f)
                                                     .clickable {
-                                                        chatViewmodel.findUser(query)
+                                                        grpViewmodel.findGroup(query)
                                                     })
                                         }
                                         Row {
-                                            ItemDesignAlert(
-                                                userState = chatViewmodel.userState
+                                            ItemDesignGroupAlert(
+                                                groupState = grpViewmodel.groupState
                                             )
                                         }
                                     }
@@ -413,9 +508,9 @@ fun MainScreen(
                                     ) {
                                         TextButton(
                                             onClick = {
-                                                alertState = false
+                                                grpState = false
                                                 query = ""
-                                                chatViewmodel.emptyUser()
+                                                grpViewmodel.emptyGroup()
                                             },
                                             colors = ButtonDefaults.textButtonColors(Color.Red),
                                             shape = RoundedCornerShape(8.dp),
@@ -427,159 +522,31 @@ fun MainScreen(
                                             border = BorderStroke(1.dp, Color.Blue),
                                             onClick = {
                                                 if (query.isBlank()) {
-                                                    chatViewmodel.setUserEmpty("Input is empty")
+                                                    grpViewmodel.emptyGroup("Input is empty")
                                                 } else {
-                                                    currentUser.value?.uid?.let { uid ->
-                                                        user?.let { user ->
-                                                            if (user.uid.isNotEmpty()) {
-                                                                chatViewmodel.initiateChat(
-                                                                    senderId = uid,
-                                                                    receiverId = user.uid,
-                                                                    message = ""
-                                                                ) {
-
-                                                                }
-                                                                // Reset states after initiating chat
-                                                                alertState = false
-                                                                query = ""
-                                                                chatViewmodel.emptyUser()
-                                                            }
+                                                    grpViewmodel.group?.let {
+                                                        currentUser.value?.uid?.let { uid ->
+                                                            navController.navigate(
+                                                                Routes.Request(
+                                                                    grpId = it.grpId,
+                                                                    uid = uid
+                                                                )
+                                                            )
                                                         }
+                                                        grpState = false
+                                                        query = ""
+                                                        grpViewmodel.emptyGroup()
                                                     }
                                                 }
                                             },
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.width(120.dp)
                                         ) {
-                                            TextDesign(text = "Add Chat")
+                                            TextDesign(text = "Send request")
                                         }
                                     }
                                 }
-                            }
-                        )
-                    }
-
-                    if (grpState && chipsState == 1) {
-                        AlertDialog(shape = RoundedCornerShape(15.dp), onDismissRequest = {
-                            grpState = false
-                            chatViewmodel.emptyUser()
-                        }, confirmButton = {
-
-                        }, title = {
-                            Box(
-                                modifier = Modifier.height(350.dp)
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    TextDesign(text = "Add groups to ClubMate", size = 17)
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 10.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xD5C0D0F7)),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        if (query.isEmpty()) {
-                                            Text(
-                                                text = "Join groups by id",
-                                                fontFamily = roboto,
-                                                fontSize = 14.sp,
-                                                color = Color.Black,
-                                                modifier = Modifier.padding(start = 15.dp)
-                                            )
-                                        }
-                                        BasicTextField(
-                                            value = query,
-                                            onValueChange = {
-                                                query = it
-                                            },
-                                            modifier = Modifier
-                                                .padding(15.dp)
-                                                .fillMaxWidth(),
-                                            textStyle = TextStyle(
-                                                fontFamily = roboto,
-                                                fontSize = 16.sp,
-                                                color = Color.Black
-                                            ),
-                                            maxLines = 1,
-                                            keyboardOptions = KeyboardOptions(
-                                                imeAction = ImeAction.Done
-                                            ),
-                                            keyboardActions = KeyboardActions(onDone = {
-                                                grpViewmodel.findGroup(query)
-                                            })
-                                        )
-                                        Image(painter = painterResource(id = R.drawable.search),
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .padding(end = 15.dp)
-                                                .size(22.dp)
-                                                .align(Alignment.CenterEnd)
-                                                .rotate(270f)
-                                                .clickable {
-                                                    grpViewmodel.findGroup(query)
-                                                })
-                                    }
-                                    Row {
-                                        ItemDesignGroupAlert(
-                                            groupState = grpViewmodel.groupState
-                                        )
-                                    }
-                                }
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .align(Alignment.BottomCenter),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    TextButton(
-                                        onClick = {
-                                            grpState = false
-                                            query = ""
-                                            grpViewmodel.emptyGroup()
-                                        },
-                                        colors = ButtonDefaults.textButtonColors(Color.Red),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.width(120.dp)
-                                    ) {
-                                        TextDesign(text = "Cancel")
-                                    }
-                                    TextButton(
-                                        border = BorderStroke(1.dp, Color.Blue),
-                                        onClick = {
-                                            if (query.isBlank()) {
-                                                grpViewmodel.emptyGroup("Input is empty")
-                                            } else {
-                                                grpViewmodel.group?.let {
-                                                    currentUser.value?.uid?.let { uid ->
-                                                        grpViewmodel.joinGroup(
-                                                            grpId = query, uid = uid
-                                                        ) {
-                                                            if (it) {
-                                                                grpState = false
-                                                                query = ""
-                                                                grpViewmodel.emptyGroup()
-                                                            } else {
-                                                                grpViewmodel.emptyGroup("Group joined failed")
-                                                            }
-                                                        }
-
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.width(120.dp)
-                                    ) {
-                                        TextDesign(text = "Join group")
-                                    }
-                                }
-                            }
-                        })
+                            })
                     }
 
                     Row(
@@ -609,24 +576,30 @@ fun MainScreen(
 
                     if (isOnline) {
 
-                        if (chipsState == 0) {
-                            if (chatsList.value.isNotEmpty()) {
+                        if (chipsState == 0 && searchText.isNotEmpty()) {
+                            if (filteredChats.isEmpty()) {
+                                Text(
+                                    text = "User not found",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 16.sp
+                                )
+                            } else {
                                 LazyColumn(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
 
-                                    items(chatsList.value.sortedByDescending {
-                                        it.lastMessage?.timestamp
-                                    }) { item ->
-                                        val receiver = item.participants.find {
-                                            it.uid != currentUserId
-                                        }
+                                    items(filteredChats) { item ->
+                                        val receiver =
+                                            item.participants.find { it.uid != currentUserId }
 
-                                        receiver?.username?.let { it1 ->
+                                        receiver?.username?.let {
                                             item.lastMessage?.let { it2 ->
                                                 ChatsDesign(
-                                                    reciever = it1,
+                                                    pp = receiver.photoUrl,
+                                                    reciever = receiver.username,
                                                     uri = it2.imageRef,
                                                     lastMessage = it2.messageText
                                                 ) {
@@ -644,32 +617,103 @@ fun MainScreen(
                                     }
                                 }
                             }
-                        }
-                        if (chipsState == 1) {
+                        } else if (chipsState == 1 && searchText.isNotEmpty()) {
+                            if (filteredGroups.isEmpty()) {
+                                Text(
+                                    text = "Group not found",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color.Gray,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 16.sp
+                                )
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
 
-                            LazyColumn(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                items(groupsList.value.sortedByDescending {
-                                    it.lastActivity.message.timestamp
-                                }) { item ->
-                                    currentUserId?.let {
-                                        GroupDesign(
-                                            grpName = item.grpName,
-                                            grpId = item.grpId,
-                                            lastActivity = item.lastActivity
-                                        ) {
-                                            navController.navigate(
-                                                Routes.GroupModel(
-                                                    user = currentUserId, grpId = item.grpId
+                                    items(filteredGroups) { item ->
+                                        currentUserId?.let {
+                                            GroupDesign(
+                                                grpName = item.grpName,
+                                                grpId = item.grpId,
+                                                lastActivity = item.lastActivity
+                                            ) {
+                                                navController.navigate(
+                                                    Routes.GroupModel(
+                                                        user = currentUserId, grpId = item.grpId
+                                                    )
                                                 )
-                                            )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            if (chipsState == 0) {
+                                if (chatsList.value.isNotEmpty()) {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        items(chatsList.value.sortedByDescending {
+                                            it.lastMessage?.timestamp
+                                        }) { item ->
+                                            val receiver = item.participants.find {
+                                                it.uid != currentUserId
+                                            }
+
+                                            receiver?.username?.let {
+                                                item.lastMessage?.let { it2 ->
+                                                    ChatsDesign(
+                                                        pp = receiver.photoUrl,
+                                                        reciever = receiver.username,
+                                                        uri = it2.imageRef,
+                                                        lastMessage = it2.messageText
+                                                    ) {
+                                                        navController.navigate(
+                                                            Routes.UserModel(
+                                                                uid = receiver.uid,
+                                                                username = receiver.username,
+                                                                email = receiver.email,
+                                                                chatID = item.chatId
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }
+                            if (chipsState == 1) {
+
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    items(groupsList.value.sortedByDescending {
+                                        it.lastActivity.message.timestamp
+                                    }) { item ->
+                                        currentUserId?.let {
+                                            GroupDesign(
+                                                grpName = item.grpName,
+                                                grpId = item.grpId,
+                                                lastActivity = item.lastActivity
+                                            ) {
+                                                navController.navigate(
+                                                    Routes.GroupModel(
+                                                        user = currentUserId, grpId = item.grpId
+                                                    )
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+
                     } else {
                         Box(
                             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
@@ -681,4 +725,125 @@ fun MainScreen(
             }
         }
     }
+}
+
+
+@Composable
+fun AlertStateDesign(
+    chatViewmodel: ChatViewModel,
+    onStateChange: () -> Unit,
+    searchValue: String,
+    onSearchValueChange: (String) -> Unit,
+    onAddClick: () -> Unit,
+    onCancelClick: () -> Unit
+) {
+
+    AlertDialog(
+        shape = RoundedCornerShape(15.dp), onDismissRequest = {
+            onStateChange()
+            chatViewmodel.emptyUser()
+        }, confirmButton = {
+
+        }, title = {
+
+            Box(
+                modifier = Modifier
+                    .height(350.dp)
+                    .width(450.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextDesign(text = "Add chat to ClubMate", size = 17)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFBFFE4)),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (searchValue.isEmpty()) {
+                            Text(
+                                text = "Search by name or email",
+                                fontFamily = roboto,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                modifier = Modifier.padding(start = 15.dp)
+                            )
+                        }
+                        BasicTextField(
+                            value = searchValue,
+                            onValueChange = {
+                                onSearchValueChange(it)
+                            },
+                            modifier = Modifier
+                                .padding(15.dp)
+                                .fillMaxWidth(),
+                            textStyle = TextStyle(
+                                fontFamily = roboto,
+                                fontSize = 16.sp,
+                                color = Color.Black
+                            ),
+                            maxLines = 1,
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(onDone = {
+                                chatViewmodel.findUser(searchValue)
+                            })
+                        )
+                        Image(painter = painterResource(id = R.drawable.search),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(end = 15.dp)
+                                .size(22.dp)
+                                .align(Alignment.CenterEnd)
+                                .rotate(270f)
+                                .clickable {
+                                    chatViewmodel.findUser(searchValue)
+                                })
+                    }
+                    Row {
+                        ItemDesignAlert(
+                            userState = chatViewmodel.userState
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            onCancelClick()
+                        },
+                        colors = ButtonDefaults.textButtonColors(Color.Red),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.width(120.dp)
+                    ) {
+                        TextDesign(text = "Cancel")
+                    }
+                    TextButton(
+                        border = BorderStroke(1.dp, Color.Blue),
+                        onClick = {
+                            if (searchValue.isBlank()) {
+                                chatViewmodel.setUserEmpty("Input is empty")
+                            } else {
+                                onAddClick()
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.width(120.dp)
+                    ) {
+                        TextDesign(text = "Add Chat")
+                    }
+                }
+            }
+        }
+    )
 }

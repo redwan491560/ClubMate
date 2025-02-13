@@ -1,5 +1,6 @@
 package com.example.clubmate.util.group
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +38,7 @@ fun GroupDesign(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(Color(0xFFE1EACD))
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

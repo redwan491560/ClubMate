@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -48,7 +49,7 @@ import com.example.clubmate.util.group.MemberDesign
 import com.example.clubmate.viewmodel.AuthViewModel
 import com.example.clubmate.viewmodel.GroupViewmodel
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "StateFlowValueCalledInComposition")
 @Composable
 fun ViewAllParticipants(
     grpInfo: Routes.ViewAllUser,
@@ -56,6 +57,7 @@ fun ViewAllParticipants(
     authViewModel: AuthViewModel,
     navController: NavHostController
 ) {
+
 
     val currentUser = authViewModel.currentUser
     // returns the searched user
@@ -71,6 +73,15 @@ fun ViewAllParticipants(
             it?.let {
                 grpDetails = it
             }
+        }
+    }
+
+    val filteredMembers = remember(query, membersList.value) {
+        membersList.value.filter {
+            it.username.contains(query, ignoreCase = true) ||
+                    it.email.contains(query, ignoreCase = true) ||
+                    it.phone.contains(query, ignoreCase = true) ||
+                    it.userType.name.contains(query, ignoreCase = true)
         }
     }
 
@@ -149,22 +160,53 @@ fun ViewAllParticipants(
             }
             Spacer(modifier = Modifier.height(20.dp))
 
-            LazyColumn(state = scrollState) {
-                items(membersList.value) { item ->
-                    MemberDesign(item, grpViewmodel.convertTimestamp(item.joinData)) {
-                        currentUser.value?.uid?.let {
-                            navController.navigate(
-                                Routes.GroupUserDetails(
-                                    grpId = grpInfo.grpId,
-                                    userId = item.uid,
-                                    currentUserId = it
-                                )
-                            )
+
+            if (query.isNotEmpty()) {
+                if (filteredMembers.isEmpty()) {
+                    Text(
+                        text = "User not found",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center,
+                        fontSize = 16.sp
+                    )
+                } else {
+                    LazyColumn(state = scrollState) {
+                        items(filteredMembers) { item ->
+                            currentUser.value?.uid?.let { it1 ->
+                                MemberDesign(item, grpViewmodel.convertTimestamp(item.joinData)) {
+                                    navController.navigate(
+                                        Routes.GroupUserDetails(
+                                            grpId = grpInfo.grpId,
+                                            userId = item.uid,
+                                            currentUserId = it1
+                                        )
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(5.dp))
                         }
                     }
-                    Spacer(modifier = Modifier.height(5.dp))
+                }
+            } else {
+                LazyColumn(state = scrollState) {
+                    items(membersList.value) { item ->
+                        currentUser.value?.uid?.let { it1 ->
+                            MemberDesign(item, grpViewmodel.convertTimestamp(item.joinData)) {
+                                navController.navigate(
+                                    Routes.GroupUserDetails(
+                                        grpId = grpInfo.grpId,
+                                        userId = item.uid,
+                                        currentUserId = it1
+                                    )
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(5.dp))
+                    }
                 }
             }
+
         }
     }
 }

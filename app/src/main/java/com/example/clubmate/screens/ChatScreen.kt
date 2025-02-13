@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
@@ -79,10 +81,18 @@ fun ChatScreen(
     val receiverId = userModel.uid
     val currentUser by authViewModel.currentUser.collectAsState()
 
+    var details by remember { mutableStateOf(Routes.UserModel()) }
+    LaunchedEffect(Unit) {
+        chatViewmodel.fetchUserByUid(receiverId) {
+            it?.let {
+                details = it
+            }
+        }
+    }
 
     LaunchedEffect(messages.value) {
         if (messages.value.isNotEmpty()) {
-            listState.animateScrollToItem(messages.value.size - 1)
+            listState.scrollToItem(messages.value.size - 1) // Instantly scroll to bottom
         }
     }
 
@@ -90,6 +100,14 @@ fun ChatScreen(
     // notification part
     LaunchedEffect(Unit) {
         listState.interactionSource
+    }
+
+    LaunchedEffect(Unit) {
+        currentUser?.uid?.let {
+            chatViewmodel.receiveMessage(
+                chatId = userModel.chatID
+            )
+        }
     }
 
     LaunchedEffect(userModel.uid, userModel.chatID) {
@@ -123,15 +141,16 @@ fun ChatScreen(
 
     Scaffold(modifier = Modifier
         .systemBarsPadding()
+        .background(Color(0xFFFDF7F4))
         .windowInsetsPadding(WindowInsets.ime)
         .padding(horizontal = 7.dp, vertical = 5.dp),
         topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp, 10.dp, 0.dp, 0.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFFF3E5E5))
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -141,7 +160,17 @@ fun ChatScreen(
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(10.dp))
+                    AsyncImage(
+                        model = details.photoUrl,
+                        contentDescription = "group photo",
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.logo_primary),
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(30.dp))
+                    )
+
+                    Spacer(modifier = Modifier.width(15.dp))
                     Column {
                         userModel.run {
                             Text(
@@ -157,6 +186,7 @@ fun ChatScreen(
                                             Routes.UserDetails(
                                                 username = username,
                                                 email = email,
+                                                uid = uid,
                                                 chatID = chatID,
                                                 phone = it.phone
                                             )
@@ -211,7 +241,7 @@ fun ChatScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 0.dp, vertical = 6.dp)
-                            .clip(RoundedCornerShape(8.dp, 8.dp, 0.dp, 0.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF3A4233)),
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -264,7 +294,7 @@ fun ChatScreen(
 
                 OutlinedTextField(value = text,
                     onValueChange = { text = it },
-                    shape = RoundedCornerShape(0.dp, 0.dp, 6.dp, 6.dp),
+                    shape = RoundedCornerShape(10.dp),
                     maxLines = 3,
                     leadingIcon = {
                         Image(painter = painterResource(id = R.drawable.attachment_24px),
@@ -329,6 +359,7 @@ fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFFFDF7F4))
                 .padding(bottom = 60.dp, top = 70.dp)
         ) {
 

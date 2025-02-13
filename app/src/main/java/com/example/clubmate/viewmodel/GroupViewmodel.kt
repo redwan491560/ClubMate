@@ -115,12 +115,12 @@ class GroupViewmodel : ViewModel() {
     ) {
 
         val createdAt = System.currentTimeMillis()
-        // Group does not exist, create a new one
         val grpDetails = Routes.GrpDetails(
             createdAt = createdAt,
             createdBy = createdBy,
             description = description,
             grpId = grpId,
+            photoUrl = "",
             grpName = grpName,
         )
 
@@ -171,6 +171,47 @@ class GroupViewmodel : ViewModel() {
     }
 
 
+    fun updateGroupProfilePicture(grpId: String, uri: Uri, onComplete: (Boolean) -> Unit) {
+
+        uploadPPtoDB(imageUri = uri, grpId = grpId) {
+            grpRef.child(grpId).child("grpInfo").child("photoUrl").setValue(uri)
+                .addOnSuccessListener { onComplete(true) }
+                .addOnFailureListener { onComplete(false) }
+        }
+
+    }
+
+    private fun uploadPPtoDB(imageUri: Uri, grpId: String, onComplete: (String) -> Unit) {
+        val requestId = MediaManager.get().upload(imageUri)
+            .option("folder", "group_images/$grpId")
+            .callback(object : com.cloudinary.android.callback.UploadCallback {
+                override fun onStart(requestId: String?) {
+                    Log.d("Cloudinary", "Upload started")
+                }
+
+                override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
+                    Log.d("Cloudinary", "Uploading: $bytes/$totalBytes")
+                }
+
+                override fun onSuccess(requestId: String?, resultData: MutableMap<Any?, Any?>?) {
+                    val imageUrl = resultData?.get("secure_url") as? String
+                    if (imageUrl != null) {
+                        onComplete(imageUrl) // Pass the Cloudinary image URL to save in the database
+                    }
+                }
+
+                override fun onError(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled")
+
+                }
+
+                override fun onReschedule(requestId: String?, error: ErrorInfo?) {
+                    Log.e("Cloudinary", "Upload rescheduled")
+
+                }
+            }).dispatch()
+    }
+
     fun loadGroupInfo(grpId: String, onResult: (Routes.GrpDetails?) -> Unit) {
 
         grpRef.child(grpId).child("grpInfo").get().addOnSuccessListener {
@@ -187,51 +228,52 @@ class GroupViewmodel : ViewModel() {
 
     // groups
     fun listenForGroups(uid: String) {
-        userRef.child(uid).child("groups_connected").addListenerForSingleValueEvent(object :
-            ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (!snapshot.exists()) {
-                    _groupsList.value = emptyList()
-                    return
-                }
-
-                val groupIds = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
-                    ?: emptyList()
-
-                if (groupIds.isEmpty()) {
-                    _groupsList.value = emptyList() // No groups found
-                    return
-                }
-
-                val fetchedGroups = mutableListOf<GroupDetails>()
-                val deferredList = mutableListOf<Deferred<GroupDetails?>>()
-
-                viewModelScope.launch {
-                    groupIds.forEach { grpId ->
-                        val deferred = async {
-                            try {
-                                val groupDetails = fetchGroupDetails(grpId)
-                                groupDetails
-                            } catch (e: Exception) {
-                                Log.e(
-                                    "listenForGroups",
-                                    "Error fetching group details: ${e.message}"
-                                )
-                                null
-                            }
-                        }
-                        deferredList.add(deferred)
+        userRef.child(uid).child("groups_connected")
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!snapshot.exists()) {
+                        _groupsList.value = emptyList()
+                        return
                     }
 
-                    val results = deferredList.awaitAll().filterNotNull()
-                    _groupsList.value = results // Only update once all groups have been fetched
-                }
-            }
+                    val groupIds =
+                        snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                            ?: emptyList()
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("listenForGroups", "Error fetching user groups: ${error.message}")
-            }
-        })
+                    if (groupIds.isEmpty()) {
+                        _groupsList.value = emptyList() // No groups found
+                        return
+                    }
+
+                    val fetchedGroups = mutableListOf<GroupDetails>()
+                    val deferredList = mutableListOf<Deferred<GroupDetails?>>()
+
+                    viewModelScope.launch {
+                        groupIds.forEach { grpId ->
+                            val deferred = async {
+                                try {
+                                    val groupDetails = fetchGroupDetails(grpId)
+                                    groupDetails
+                                } catch (e: Exception) {
+                                    Log.e(
+                                        "listenForGroups",
+                                        "Error fetching group details: ${e.message}"
+                                    )
+                                    null
+                                }
+                            }
+                            deferredList.add(deferred)
+                        }
+
+                        val results = deferredList.awaitAll().filterNotNull()
+                        _groupsList.value = results // Only update once all groups have been fetched
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("listenForGroups", "Error fetching user groups: ${error.message}")
+                }
+            })
     }
 
     private suspend fun fetchGroupDetails(grpId: String): GroupDetails? {
@@ -315,7 +357,7 @@ class GroupViewmodel : ViewModel() {
             })
     }
 
-    fun joinGroup(uid: String, grpId: String, onComplete: (Boolean) -> Unit) {
+    private fun joinGroup(uid: String, grpId: String, onComplete: (Boolean) -> Unit) {
 
         grpRef.child(grpId).get().addOnSuccessListener { groupSnapshot ->
             if (groupSnapshot.exists()) {
@@ -577,34 +619,92 @@ class GroupViewmodel : ViewModel() {
             })
     }
 
+    private val _requestList = MutableStateFlow<List<RequestMap>>(emptyList())
+    val requestList = _requestList
 
-    fun updateUserRole(email: String, category: Category, grpId: String) {
-
-        val participantsRef = grpRef.child(grpId).child("participants")
-
-        participantsRef.orderByChild("email").equalTo(email)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
+    fun listenToRequest(grpId: String) {
+        grpRef.child(grpId).child("request")
+            .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        for (userSnapshot in snapshot.children) {
-                            userSnapshot.ref.child("userType").setValue(category)
-                                .addOnSuccessListener {
-                                    Log.d("Update Success", "User role updated to $category")
-                                }.addOnFailureListener { exception ->
-                                    Log.e(
-                                        "Update Failed", "Error updating role: ${exception.message}"
-                                    )
-                                }
-                        }
-                    } else {
-                        Log.e("Update Failed", "No user found with email: $email")
+                    val requestList = mutableListOf<RequestMap>()
+
+                    // Loop through all children inside "request"
+                    for (childSnapshot in snapshot.children) {
+                        val request = childSnapshot.getValue(RequestMap::class.java)
+                        request?.let { requestList.add(it) } // Add to list if not null
                     }
+
+                    _requestList.value = requestList // Update StateFlow
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Log.e("Database Error", "Error querying database: ${error.message}")
+                    println("Error fetching requests: ${error.message}")
                 }
             })
+    }
+
+
+    fun acceptRequest(grpId: String, requestMap: RequestMap) {
+        joinGroup(uid = requestMap.uid, grpId = grpId) {
+            if (it) {
+                grpRef.child(grpId).child("request").child(requestMap.uid).removeValue()
+                    .addOnSuccessListener {
+                        _requestList.value = _requestList.value.filter { request ->
+                            request.uid != requestMap.uid
+                        }
+                    }
+                    .addOnFailureListener { error ->
+                        println("Failed to remove request: ${error.message}")
+                    }
+            }
+        }
+    }
+
+    fun declineRequest(grpId: String, item: RequestMap) {
+        grpRef.child(grpId).child("request").child(item.uid).removeValue()
+            .addOnSuccessListener {
+                _requestList.value = _requestList.value.filter { request ->
+                    request.uid != item.uid
+                }
+            }
+            .addOnFailureListener { error ->
+                println("Failed to remove request: ${error.message}")
+            }
+    }
+
+    fun sendJoinRequest(
+        uid: String,
+        email: String,
+        username: String,
+        grpId: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+
+        val requestTime = System.currentTimeMillis()
+        val requestData = RequestMap(
+            uid = uid, username = username, email = email, sentTime = requestTime
+        )
+
+        grpRef.child(grpId).child("request").child(uid).setValue(requestData)
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+
+    }
+
+
+    fun updateUserRole(
+        uid: String,
+        category: Category,
+        grpId: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+
+        val participantsRef = grpRef.child(grpId).child("participants")
+
+        participantsRef.child(uid).child("userType").setValue(category)
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+
     }
 
 
@@ -620,7 +720,7 @@ class GroupViewmodel : ViewModel() {
 
             if (imageUri != null) {
                 // If an image is present, upload and then proceed
-                uploadImageToStorage(imageUri, grpId) { imageUrl ->
+                uploadImageToStorage(imageUri = imageUri, grpId = grpId) { imageUrl ->
                     val activityData = GroupActivity(
                         message = GroupMessage(
                             timestamp = timestamp,
@@ -648,10 +748,14 @@ class GroupViewmodel : ViewModel() {
     }
 
 
-    private fun uploadImageToStorage(imageUri: Uri, grpId: String, onComplete: (String) -> Unit) {
+    private fun uploadImageToStorage(
+        imageUri: Uri,
+        grpId: String,
+        onComplete: (String) -> Unit
+    ) {
 
         val requestId = MediaManager.get().upload(imageUri)
-            .option("folder", "group_images/$grpId") // Store images inside "group_images/{grpId}"
+            .option("folder", "group_images/$grpId")
             .callback(object : com.cloudinary.android.callback.UploadCallback {
                 override fun onStart(requestId: String?) {
                     Log.d("Cloudinary", "Upload started")
@@ -774,7 +878,8 @@ class GroupViewmodel : ViewModel() {
     }
 
 
-    fun removeActivity(activity: GroupActivity) {
+    fun removeActivity(activity: GroupActivity, grpId: String) {
+        grpRef.child(grpId).child("activities").child(activity.message.messageId).removeValue()
 
     }
 
@@ -905,7 +1010,8 @@ class GroupViewmodel : ViewModel() {
                                 override fun onDataChange(snapshot: DataSnapshot) {
                                     if (snapshot.exists()) {
                                         for (childSnapshot in snapshot.children) {
-                                            val usr = childSnapshot.getValue(Routes.UserModel::class.java)
+                                            val usr =
+                                                childSnapshot.getValue(Routes.UserModel::class.java)
                                             onResult(usr)
                                             return
                                         }
@@ -934,6 +1040,32 @@ class GroupViewmodel : ViewModel() {
         _groupsList.value = emptyList()
     }
 
+    fun getParticipantsDetails(
+        grpId: String,
+        senderId: String,
+        function: (UserJoinDetails?) -> Unit
+    ) {
+
+        grpRef.child(grpId).child("participants").child(senderId).addListenerForSingleValueEvent(
+            object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val user = snapshot.getValue(UserJoinDetails::class.java)
+                        user?.let(function)
+                    } else {
+                        function(null)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    function(null)
+                }
+
+            }
+        )
+    }
+
+
 }
 
 
@@ -952,9 +1084,17 @@ data class GroupActivity(
     val type: GroupActivityType = GroupActivityType.Text, val message: GroupMessage = GroupMessage()
 )
 
+data class RequestMap(
+    val email: String = "",
+    val uid: String = "",
+    val username: String = "",
+    val sentTime: Long = 0L,
+)
+
 data class UserJoinDetails(
     val email: String = "",
     val phone: String = "",
+    val photoUrl: String = "",
     val uid: String = "",
     val username: String = "",
     val joinData: Long = 0L,
