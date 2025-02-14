@@ -30,5 +30,4 @@ class CallViewModel : ViewModel() {
         }
         return chatId
     }
-
 }

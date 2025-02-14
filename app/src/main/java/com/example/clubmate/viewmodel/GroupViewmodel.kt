@@ -14,6 +14,7 @@ import com.example.clubmate.db.GroupState
 import com.example.clubmate.db.Routes
 import com.example.clubmate.db.UserState
 import com.example.clubmate.util.Category
+import com.example.clubmate.util.group.EventCategory
 import com.example.clubmate.util.group.GroupMessage
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
@@ -1065,9 +1066,46 @@ class GroupViewmodel : ViewModel() {
         )
     }
 
+    // notice section
 
+    fun uploadEvent(
+        type: EventCategory,
+        title: String,
+        message: String,
+        visibility: Category,
+        grpId: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+        val messageId = grpRef.child(grpId).push().key ?: ""
+        val timestamp = System.currentTimeMillis()
+        val eventData = EventData(
+            type = type,
+            messageId = messageId,
+            timeStamp = timestamp,
+            title = title,
+            description = message,
+            visibility = visibility
+        )
+
+        grpRef.child(grpId).child("Events").child(type.name).child(messageId).setValue(eventData)
+            .addOnSuccessListener {
+                onComplete(true)
+            }.addOnFailureListener {
+                onComplete(false)
+            }
+
+    }
 }
 
+
+data class EventData(
+    val type: EventCategory = EventCategory.Event,
+    val title: String = "",
+    val description: String = "",
+    val messageId: String = "",
+    val visibility: Category = Category.General,
+    val timeStamp: Long = 0L
+)
 
 data class GroupDetails(
     val grpId: String = "",

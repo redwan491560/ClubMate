@@ -151,6 +151,7 @@ fun PrivateChannelAuth(
                             colorFilter = ColorFilter.tint(Color.White)
                         )
                     }
+
                     Spacer(modifier = Modifier.height(10.dp))
                     TextField(
                         value = channelId,
@@ -304,7 +305,6 @@ fun PrivateChannelAuth(
                                     "password and id cannot be empty"
                                 )
                             }
-
                         },
                         colors = ButtonDefaults.buttonColors(Color(0xFF767D9B))
                     ) {

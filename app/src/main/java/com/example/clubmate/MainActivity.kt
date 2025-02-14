@@ -64,7 +64,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-
             val authViewModel: AuthViewModel = viewModel()
             val chatViewModel: ChatViewModel = viewModel()
             val mainViewModel: MainViewmodel = viewModel()
@@ -98,7 +97,8 @@ fun App(
     val uid = "eWfnuKUneLTklQmjoBSGhS4IALI3"
 
     NavHost(
-        navController = navController, startDestination = Routes.Splash
+        navController = navController,
+        startDestination = Routes.Splash
     ) {
         composable<Routes.Splash> {
             LaunchedEffect(

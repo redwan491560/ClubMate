@@ -23,7 +23,6 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-
 class AuthViewModel : ViewModel() {
 
     // auth
@@ -134,7 +133,7 @@ class AuthViewModel : ViewModel() {
         userName: String,
         uid: String,
         context: Context,
-        password: String, // Pass password for encryption
+        password: String,
         onSuccess: () -> Unit
     ) {
         // Generate RSA Key Pair
@@ -145,10 +144,9 @@ class AuthViewModel : ViewModel() {
             username = userName,
             phone = phone, email = email,
             uid = uid,
-            encryptedPrivateKey = keyPair.second, // Store encrypted private key
-            publicKey = keyPair.first // Store public key
+            encryptedPrivateKey = keyPair.second,
+            publicKey = keyPair.first
         )
-        // Prepare user data with encrypted private key and public key
 
 
         // Save to Firebase
@@ -228,7 +226,11 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    private fun uploadProfilePictureToStorage(imageUri: Uri, uid: String, onComplete: (String) -> Unit) {
+    private fun uploadProfilePictureToStorage(
+        imageUri: Uri,
+        uid: String,
+        onComplete: (String) -> Unit
+    ) {
         MediaManager.get().upload(imageUri)
             .option("folder", "profile_pics/$uid")
             .callback(object : com.cloudinary.android.callback.UploadCallback {
@@ -261,7 +263,11 @@ class AuthViewModel : ViewModel() {
             }).dispatch()
     }
 
-    private fun saveProfilePictureToDatabase(uid: String, imageUrl: String, onComplete: (Boolean) -> Unit) {
+    private fun saveProfilePictureToDatabase(
+        uid: String,
+        imageUrl: String,
+        onComplete: (Boolean) -> Unit
+    ) {
 
         userRef.child(uid).child("photoUrl").setValue(imageUrl)
             .addOnSuccessListener { onComplete(true) }

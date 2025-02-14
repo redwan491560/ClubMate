@@ -1,6 +1,8 @@
 package com.example.clubmate.screens
 
 import android.annotation.SuppressLint
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -68,6 +70,7 @@ fun GroupScreen(
     var text by remember { mutableStateOf("") }
     val context = LocalContext.current
 
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     LaunchedEffect(Unit) {
         grpViewmodel.loadGroupInfo(grpId) { details ->
@@ -85,7 +88,7 @@ fun GroupScreen(
     }
 
     val listState = rememberLazyListState()
-    LaunchedEffect(Unit) { listState.interactionSource }
+    LaunchedEffect(grpActivity.value) { listState.interactionSource }
 
     LaunchedEffect(grpActivity.value) {
         if (grpActivity.value.isNotEmpty()) {
@@ -138,9 +141,7 @@ fun GroupScreen(
                             fontSize = 18.sp,
                             fontFamily = roboto,
                         )
-
                         TextDesignClickable(text = "View Profile", size = 14) {
-                            // view group details
                             navController.navigate(
                                 Routes.GrpDetails(
                                     grpId = grpDetails.grpId,
@@ -156,29 +157,25 @@ fun GroupScreen(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    modifier = Modifier.padding(end = 20.dp)
                 ) {
-                    Image(painter = painterResource(id = R.drawable.call_icon),
+                    Image(painter = painterResource(id = R.drawable.noticeboard),
                         contentDescription = null,
                         modifier = Modifier
-                            .size(25.dp)
+                            .size(32.dp)
                             .clickable {
 
-                            })
-                    Image(painter = painterResource(id = R.drawable.video_call),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(35.dp)
-                            .clickable {
-
-                            })
-                    Image(painter = painterResource(id = R.drawable.incognito),
+                            }
+                    )
+                    Image(painter = painterResource(id = R.drawable.private_channel),
                         contentDescription = null,
                         modifier = Modifier
                             .size(30.dp)
                             .clickable {
-
-                            })
+                                navController.navigate(Routes.PrivateAuth)
+                            }
+                    )
                 }
             }
 
@@ -263,7 +260,6 @@ fun GroupScreen(
                                 .clickable {
                                     val sentMessage = text.trim()
                                     selectedImageUri?.let { imageUri ->
-                                        // If there's an image URL, send the image URI along with an empty messageText
                                         grpViewmodel.addActivity(
                                             grpId = grpId,
                                             senderId = userId,
@@ -321,8 +317,8 @@ fun GroupScreen(
                 }) { item ->
                     if (item.message.messageText.isNotEmpty() || item.message.imageRef.isNotEmpty()) {
                         var sender by remember { mutableStateOf(UserJoinDetails()) }
-                        grpViewmodel.getParticipantsDetails(grpId, item.message.senderId){
-                            it?.let{
+                        grpViewmodel.getParticipantsDetails(grpId, item.message.senderId) {
+                            it?.let {
                                 sender = it
                             }
                         }
@@ -332,6 +328,9 @@ fun GroupScreen(
                             sender = sender,
                             sentTime = grpViewmodel.convertTimestampToTime(item.message.timestamp),
                             sentDate = grpViewmodel.convertTimestampToDate(item.message.timestamp),
+                            onCopied = {
+                                it?.let { clipboardManager.setPrimaryClip(it) }
+                            }
                         ) { act ->
                             if (item.message.senderId == userId)
                                 grpViewmodel.removeActivity(activity = act, grpId = grpId)
@@ -339,7 +338,6 @@ fun GroupScreen(
                         }
                     }
                 }
-
             }
         }
     }

@@ -49,7 +49,8 @@ import androidx.navigation.NavHostController
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.screens.launchToast
-import com.example.clubmate.ui.theme.Composables
+import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
+import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.util.chat.VanishingMessageDesign
 import com.example.clubmate.viewmodel.PrivateChannelViewModel
@@ -74,7 +75,9 @@ fun PrivateChannel(
         }
     }
     DisposableEffect(Unit) {
-        onDispose { viewModel.leaveChatroom(channelId) }
+        onDispose {
+            viewModel.leaveChatroom(channelId)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -104,18 +107,18 @@ fun PrivateChannel(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
+                    TextDesign(
                         text = "Messages will be deleted upon seen by reciever",
                         color = Color.White,
-                        fontSize = 11.sp,
+                        size = 11,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
-                    Text(text = channelId, color = Color.White, fontSize = 18.sp)
+                    TextDesign(text = channelId, color = Color.White, size = 18)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        Composables.TextDesignClickable(text = "delete", color = Color.White) {
+                        TextDesignClickable(text = "delete", color = Color.White) {
                             viewModel.deleteChannel(channelId) {
                                 navController.navigate(Routes.PrivateAuth)
                             }
@@ -214,10 +217,10 @@ fun PrivateChannel(
                     )
                 )
                 Spacer(modifier = Modifier.height(5.dp))
-                Text(
+                TextDesign(
                     text = "end to end encrypted secured channel",
                     color = Color.White,
-                    fontSize = 11.sp
+                    size = 11
                 )
             }
         }

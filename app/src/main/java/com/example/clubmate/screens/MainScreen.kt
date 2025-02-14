@@ -118,7 +118,7 @@ fun MainScreen(
     val user = chatViewmodel.user
     val group = grpViewmodel.group
 
-    val chips = listOf("Contacts", "Groups")
+    val chips = listOf("Groups", "Contacts")
     var chipsState by rememberSaveable { mutableIntStateOf(0) }
 
     val animationDuration = 300
@@ -162,7 +162,10 @@ fun MainScreen(
     val filteredChats = remember(searchText, chatsList.value) {
         chatsList.value.filter {
             it.participants[0].username.contains(searchText, ignoreCase = true) ||
-                    it.participants[1].username.contains(searchText, ignoreCase = true)
+                    it.participants[1].username.contains(searchText, ignoreCase = true) ||
+                    it.participants[0].phone.contains(searchText, ignoreCase = true) ||
+                    it.participants[1].phone.contains(searchText, ignoreCase = true)
+
         }
     }
     val filteredGroups = remember(searchText, chatsList.value) {
@@ -261,8 +264,8 @@ fun MainScreen(
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 10.dp, vertical = 5.dp)
-                        .height(55.dp)
-                        .clip(RoundedCornerShape(15.dp))
+                        .height(45.dp)
+                        .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFFC4F3B3)),
                     contentAlignment = Alignment.CenterStart
                 ) {
@@ -270,11 +273,11 @@ fun MainScreen(
                         Text(
                             text = "Search...",
                             fontFamily = roboto,
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             color = Color.Black,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 15.dp)
+                                .padding(start = 20.dp)
                         )
                     }
                     BasicTextField(
@@ -282,12 +285,12 @@ fun MainScreen(
                             searchText = it
                         }, textStyle = TextStyle(
                             fontFamily = roboto,
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             color = Color.Black
                         ), maxLines = 1,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 15.dp),
+                            .padding(start = 20.dp),
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Done
                         )
@@ -295,9 +298,7 @@ fun MainScreen(
                 }
             }
 
-
         }, floatingActionButton = {
-
             Row(
                 modifier = Modifier.padding(10.dp)
             ) {
@@ -393,7 +394,7 @@ fun MainScreen(
                 Column(
                     modifier = Modifier.padding(top = 120.dp)
                 ) {
-                    if (alertState && chipsState == 0) {
+                    if (alertState && chipsState == 1) {
 
                         AlertStateDesign(
                             chatViewmodel = chatViewmodel,
@@ -427,7 +428,7 @@ fun MainScreen(
 
                     }
 
-                    if (grpState && chipsState == 1) {
+                    if (grpState && chipsState == 0) {
                         AlertDialog(
                             shape = RoundedCornerShape(15.dp),
                             onDismissRequest = {
@@ -576,7 +577,7 @@ fun MainScreen(
 
                     if (isOnline) {
 
-                        if (chipsState == 0 && searchText.isNotEmpty()) {
+                        if (chipsState == 1 && searchText.isNotEmpty()) {
                             if (filteredChats.isEmpty()) {
                                 Text(
                                     text = "User not found",
@@ -617,7 +618,7 @@ fun MainScreen(
                                     }
                                 }
                             }
-                        } else if (chipsState == 1 && searchText.isNotEmpty()) {
+                        } else if (chipsState == 0 && searchText.isNotEmpty()) {
                             if (filteredGroups.isEmpty()) {
                                 Text(
                                     text = "Group not found",
@@ -636,7 +637,6 @@ fun MainScreen(
                                         currentUserId?.let {
                                             GroupDesign(
                                                 grpName = item.grpName,
-                                                grpId = item.grpId,
                                                 lastActivity = item.lastActivity
                                             ) {
                                                 navController.navigate(
@@ -650,7 +650,7 @@ fun MainScreen(
                                 }
                             }
                         } else {
-                            if (chipsState == 0) {
+                            if (chipsState == 1) {
                                 if (chatsList.value.isNotEmpty()) {
                                     LazyColumn(
                                         modifier = Modifier.fillMaxWidth(),
@@ -683,11 +683,10 @@ fun MainScreen(
                                                 }
                                             }
                                         }
-
                                     }
                                 }
                             }
-                            if (chipsState == 1) {
+                            if (chipsState == 0) {
 
                                 LazyColumn(
                                     modifier = Modifier.fillMaxWidth(),
@@ -699,7 +698,6 @@ fun MainScreen(
                                         currentUserId?.let {
                                             GroupDesign(
                                                 grpName = item.grpName,
-                                                grpId = item.grpId,
                                                 lastActivity = item.lastActivity
                                             ) {
                                                 navController.navigate(

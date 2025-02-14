@@ -35,6 +35,7 @@ import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.ui.theme.roboto
+import com.example.clubmate.viewmodel.IncognitoMessage
 
 
 @Composable
@@ -75,21 +76,16 @@ fun MessageItem(
                         .background(bgColor)
                         .padding(vertical = 6.dp, horizontal = 4.dp)
                         .pointerInput(Unit) {
-                            detectTapGestures(
-                                onLongPress = {
-                                    if (isSent) isSelected = true
-                                },
-                                onTap = {
-                                    if (isSelected) isSelected = false
-                                }
-                            )
+                            detectTapGestures(onLongPress = {
+                                if (isSent) isSelected = true
+                            }, onTap = {
+                                if (isSelected) isSelected = false
+                            })
                         },
                 ) {
                     if (message.imageRef.isNotEmpty()) {
-                        // Display Image with preloading and caching
                         Box(
-                            modifier = Modifier.width(300.dp),
-                            contentAlignment = Alignment.Center
+                            modifier = Modifier.width(300.dp), contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
                                 modifier = Modifier
@@ -122,17 +118,14 @@ fun MessageItem(
 
                 }
                 Text(
-                    text = time, fontFamily = roboto,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(
+                    text = time, fontFamily = roboto, fontSize = 12.sp, modifier = Modifier.padding(
                         end = if (isSent) 5.dp else 0.dp,
                     )
                 )
             }
             if (isSent) {
                 AnimatedVisibility(isSelected) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.delete_msg),
+                    Icon(painter = painterResource(id = R.drawable.delete_msg),
                         contentDescription = "Delete Item",
                         modifier = Modifier
                             .padding(bottom = 20.dp, start = 5.dp)
@@ -148,22 +141,56 @@ fun MessageItem(
 }
 
 
-fun checkFilterStatus(status: MessageStatus): Color {
-    return when (status) {
-        MessageStatus.SEEN -> {
-            Color.Blue
-        }
+@Composable
+fun IncognitoMessageItem(
+    message: IncognitoMessage,
+    isSent: Boolean,
+    time: String = "",
+    status: MessageStatus = MessageStatus.SENDING
+) {
 
-        MessageStatus.DELIVERED -> {
-            Color.Black
-        }
 
-        MessageStatus.SENDING -> {
-            Color(0xD3928888)
-        }
+    val bgColor by remember {
+        mutableStateOf(
+            if (isSent) Color.White else Color.Gray
+        )
+    }
 
-        else -> {
-            Color(0xBF6F4D4D)
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = if (isSent) Alignment.CenterEnd else Alignment.CenterStart
+    ) {
+        Row(
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column(
+                horizontalAlignment = if (isSent) Alignment.End else Alignment.Start
+            ) {
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(bgColor)
+                        .padding(vertical = 6.dp, horizontal = 4.dp)
+                ) {
+
+                    Text(
+                        text = message.messageText,
+                        fontSize = 16.sp,
+                        fontFamily = roboto,
+                        modifier = Modifier
+                            .padding(horizontal = 10.dp)
+                            .widthIn(max = 280.dp),
+                        color = Color.Black
+                    )
+                }
+                Text(
+                    text = time, fontFamily = roboto, color = Color.White, fontSize = 12.sp,
+                    modifier = Modifier.padding(
+                        end = if (isSent) 5.dp else 0.dp,
+                    )
+                )
+            }
         }
     }
 }

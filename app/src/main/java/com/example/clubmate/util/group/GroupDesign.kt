@@ -26,7 +26,7 @@ import com.example.clubmate.viewmodel.GroupActivity
 
 @Composable
 fun GroupDesign(
-    grpName: String, grpId: String, lastActivity: GroupActivity, onClick: () -> Unit
+    grpName: String, lastActivity: GroupActivity, onClick: () -> Unit
 ) {
 
     val name by remember { mutableStateOf(grpName) }

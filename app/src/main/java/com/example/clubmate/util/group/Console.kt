@@ -26,8 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -141,7 +139,7 @@ fun Console(
     var chipsState by rememberSaveable { mutableIntStateOf(0) }
     var expanded by rememberSaveable { mutableStateOf(false) }
 
-    val chipsText = listOf("Event", "Request")
+    val chipsText = listOf("Participant", "Event", "Request")
     var state by rememberSaveable { mutableIntStateOf(0) }
 
 
@@ -183,16 +181,15 @@ fun Console(
         }
 
 
-    Scaffold(
-        modifier = Modifier.systemBarsPadding()
-    ) {
-
+    Scaffold {
         Column(
             Modifier.fillMaxSize()
         ) {
             Row(
                 modifier = Modifier
+                    .background(Color(0xCCEAEEAC))
                     .fillMaxWidth()
+                    .systemBarsPadding()
                     .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(15.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -251,128 +248,13 @@ fun Console(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = 0.dp, end = 5.dp)
-            ) {
-
-                Column(
-                    Modifier
-                        .weight(9f)
-                        .padding(start = 15.dp), Arrangement.spacedBy(10.dp)
-                ) {
-
-                    ConsoleDetailsIcon(
-                        image = painterResource(id = R.drawable.person),
-                        title = "Participants",
-                        number = allParticipants.value.size.toString()
-                    ) {
-
-                    }
-                    ConsoleDetailsIcon(
-                        image = painterResource(id = R.drawable.admin),
-                        title = "Admins",
-                        number = admins.toString()
-                    ) {
-
-                    }
-
-                    ConsoleDetailsIcon(
-                        image = painterResource(id = R.drawable.president),
-                        title = "President",
-                        number = president.toString()
-                    ) {
-
-                    }
-
-                    ConsoleDetailsIcon(
-                        image = painterResource(id = R.drawable.vp),
-                        title = "Vice President",
-                        number = vp.toString()
-                    ) {
-
-                    }
-
-                    ConsoleDetailsIcon(
-                        image = painterResource(id = R.drawable.treasure),
-                        title = "Treasurer",
-                        number = treasurer.toString()
-                    ) {
-
-                    }
-                    ConsoleDetailsIcon(
-                        image = painterResource(id = R.drawable.person),
-                        title = "General",
-                        number = general.toString()
-                    ) {
-
-                    }
-                }
-
-                Card(shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.clickable {
-                        expanded = !expanded
-                    }) {
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Icon(imageVector = if (!expanded) Icons.AutoMirrored.Outlined.KeyboardArrowLeft
-                        else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(top = 10.dp, end = 13.dp)
-                                .size(30.dp)
-                                .clickable {
-                                    expanded = !expanded
-                                })
-                        Box(modifier = Modifier
-                            .padding(8.dp)
-                            .clickable {
-                                expanded = !expanded
-                            }) {
-                            VerticalNavigationBar(modifier = Modifier.align(Alignment.CenterEnd),
-                                items = navList,
-                                expanded = expanded,
-                                onItemClicked = { index, _ ->
-                                    when (index) {
-                                        0 -> navController.navigate(
-                                            Routes.AddUserToGroup(grpId = args.grpId)
-                                        )
-
-                                        1 -> navController.navigate(
-                                            Routes.RemoveUserFromGroup(grpId = args.grpId)
-                                        )
-
-                                        2 -> navController.navigate(
-                                            Routes.Request(uid = args.uid, grpId = args.grpId)
-                                        )
-
-                                        3 -> navController.navigate(
-                                            Routes.ViewAllUser(grpId = args.grpId)
-                                        )
-
-                                        4 -> navController.navigate(
-                                            Routes.ChangeRoles(grpId = args.grpId, uid = args.uid)
-                                        )
-
-                                        5 -> navController.navigate(
-                                            Routes.Block(
-                                                uid = args.uid, grpId = args.grpId
-                                            )
-                                        )
-
-                                    }
-                                },
-                                onToggle = { expanded = !expanded } // Toggle the entire bar.
-                            )
-                        }
-                    }
-                }
-            }
             Column(
-                modifier = Modifier.padding(top = 15.dp, start = 10.dp, end = 10.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xCCF0F1E1))
             ) {
+                Spacer(modifier = Modifier.height(30.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
@@ -384,6 +266,7 @@ fun Console(
                             textDecoration = if (state == ind) TextDecoration.Underline else TextDecoration.None,
                             color = if (state == ind) Color.Blue else Color.Black,
                             fontFamily = roboto,
+
                             modifier = Modifier.clickable {
                                 state = ind
                             }
@@ -396,39 +279,167 @@ fun Console(
                         color = Color.Red
                     )
                 }
+                Spacer(modifier = Modifier.height(15.dp))
 
-                if (state == 0) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                when (state) {
+                    0 -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 0.dp, end = 5.dp)
+                        ) {
+
+                            Column(
+                                Modifier
+                                    .weight(9f)
+                                    .padding(start = 15.dp), Arrangement.spacedBy(10.dp)
+                            ) {
+
+                                ConsoleDetailsIcon(
+                                    image = painterResource(id = R.drawable.person),
+                                    title = "Participants",
+                                    number = allParticipants.value.size.toString()
+                                ) {
+
+                                }
+                                ConsoleDetailsIcon(
+                                    image = painterResource(id = R.drawable.admin),
+                                    title = "Admins",
+                                    number = admins.toString()
+                                ) {
+
+                                }
+                                ConsoleDetailsIcon(
+                                    image = painterResource(id = R.drawable.president),
+                                    title = "President",
+                                    number = president.toString()
+                                ) {
+
+                                }
+
+                                ConsoleDetailsIcon(
+                                    image = painterResource(id = R.drawable.vp),
+                                    title = "Vice President",
+                                    number = vp.toString()
+                                ) {
+
+                                }
+
+                                ConsoleDetailsIcon(
+                                    image = painterResource(id = R.drawable.treasure),
+                                    title = "Treasurer",
+                                    number = treasurer.toString()
+                                ) {
+
+                                }
+                                ConsoleDetailsIcon(
+                                    image = painterResource(id = R.drawable.person),
+                                    title = "General",
+                                    number = general.toString()
+                                ) {
+
+                                }
+                            }
+
+                            Card(shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.clickable {
+                                    expanded = !expanded
+                                }) {
+                                Column(
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    Icon(imageVector = if (!expanded) Icons.AutoMirrored.Outlined.KeyboardArrowLeft
+                                    else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .padding(top = 10.dp, end = 13.dp)
+                                            .size(30.dp)
+                                            .clickable {
+                                                expanded = !expanded
+                                            })
+                                    Box(modifier = Modifier
+                                        .padding(8.dp)
+                                        .clickable {
+                                            expanded = !expanded
+                                        }) {
+                                        VerticalNavigationBar(modifier = Modifier.align(Alignment.CenterEnd),
+                                            items = navList,
+                                            expanded = expanded,
+                                            onItemClicked = { index, _ ->
+                                                when (index) {
+                                                    0 -> navController.navigate(
+                                                        Routes.AddUserToGroup(grpId = args.grpId)
+                                                    )
+
+                                                    1 -> navController.navigate(
+                                                        Routes.RemoveUserFromGroup(grpId = args.grpId)
+                                                    )
+
+                                                    2 -> navController.navigate(
+                                                        Routes.Request(
+                                                            uid = args.uid,
+                                                            grpId = args.grpId
+                                                        )
+                                                    )
+
+                                                    3 -> navController.navigate(
+                                                        Routes.ViewAllUser(grpId = args.grpId)
+                                                    )
+
+                                                    4 -> navController.navigate(
+                                                        Routes.ChangeRoles(
+                                                            grpId = args.grpId,
+                                                            uid = args.uid
+                                                        )
+                                                    )
+
+                                                    5 -> navController.navigate(
+                                                        Routes.Block(
+                                                            uid = args.uid, grpId = args.grpId
+                                                        )
+                                                    )
+
+                                                }
+                                            },
+                                            onToggle = {
+                                                expanded = !expanded
+                                            } // Toggle the entire bar.
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    1 -> {
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(15.dp),
+                            modifier = Modifier.padding(start = 15.dp)
+                        ) {
+                            chips.forEachIndexed { index, s ->
+                                Text(text = s,
+                                    fontSize = 16.sp,
+                                    color = if (chipsState == index) Color.Blue else Color.Black,
+                                    textDecoration = if (chipsState == index) TextDecoration.Underline
+                                    else TextDecoration.None,
+                                    fontFamily = roboto,
+                                    modifier = Modifier.clickable {
+                                        chipsState = index
+                                    })
+                            }
+                        }
 
                         Column(
                             modifier = Modifier.padding(start = 10.dp, end = 5.dp)
                         ) {
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-                                chips.forEachIndexed { index, s ->
-                                    Text(text = s,
-                                        fontSize = 16.sp,
-                                        color = if (chipsState == index) Color.Blue else Color.Black,
-                                        textDecoration = if (chipsState == index) TextDecoration.Underline
-                                        else TextDecoration.None,
-                                        fontFamily = roboto,
-                                        modifier = Modifier.clickable {
-                                            chipsState = index
-                                        })
-                                }
-                            }
-
-                            // text field
-
                             Spacer(modifier = Modifier.heightIn(15.dp))
                             Row(
                                 modifier = Modifier.padding(end = 10.dp)
                             ) {
                                 ExposedDropdownMenuBox(expanded = expandedDropDown,
-                                    onExpandedChange = { expandedDropDown = !expandedDropDown }) {
+                                    onExpandedChange = {
+                                        expandedDropDown = !expandedDropDown
+                                    }) {
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -736,138 +747,195 @@ fun Console(
                                 }
                             }
                             Spacer(modifier = Modifier.height(10.dp))
+                            Row {
+                                ExpandableIconsRow()
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(end = 15.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.Center
                             ) {
                                 OutlinedButton(shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.width(100.dp),
+                                    modifier = Modifier.width(120.dp),
                                     onClick = {
+                                        when (chipsState) {
+                                            0 -> {
+                                                if (title.isEmpty() || message.isEmpty()) {
+                                                    launchToast(context, "Fill all the fields")
+                                                } else {
+                                                    grpViewmodel.uploadEvent(
+                                                        type = EventCategory.Event,
+                                                        title = title,
+                                                        message = message,
+                                                        visibility = selectedCategory,
+                                                        grpId = args.grpId
+                                                    ) {
+                                                        launchToast(context, "Upload successful")
+                                                    }
+                                                }
 
-                                    }) {
-                                    Text(text = "Upload")
-                                }
-                                ExpandableIconsRow()
-                            }
+                                            }
 
-
-                        }
-
-
-                    }
-                } else {
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    LazyColumn {
-                        items(requests.value.sortedBy {
-                            it.sentTime
-                        }) { item ->
-                            RequestDesign(
-                                requestMap = item,
-                                time = grpViewmodel.convertTimestamp(item.sentTime),
-                                onClick = {
-                                    grpViewmodel.acceptRequest(grpId = args.grpId, item)
-                                }
-                            ) {
-                                grpViewmodel.declineRequest(grpId = args.grpId, item)
-                            }
-                        }
-                    }
-
-                }
-
-
-            }
-        }
-
-
-
-        if (selectedImageUri != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 40.dp, vertical = 160.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Black.copy(alpha = 0.7f)),
-                contentAlignment = Alignment.Center
-            ) {
-                selectedImageUri?.let { uri ->
-
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        TextDesign(text = "Select profile picture", size = 18, color = Color.White)
-                        Image(
-                            painter = rememberAsyncImagePainter(uri),
-                            contentDescription = "Selected Image",
-                            contentScale = ContentScale.Inside,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .width(200.dp)
-                                .height(300.dp)
-                        )
-
-                        if (isLoading) {
-                            LinearProgressIndicator()
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-
-                            Image(colorFilter = ColorFilter.tint(Color.White),
-                                painter = painterResource(id = R.drawable.delete_msg),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(top = 5.dp, end = 15.dp)
-                                    .size(40.dp)
-                                    .clickable {
-                                        selectedImageUri = null
-                                    })
-
-                            Image(colorFilter = ColorFilter.tint(Color.White),
-                                imageVector = Icons.Outlined.Done,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(top = 5.dp, end = 5.dp, bottom = 5.dp)
-                                    .size(40.dp)
-                                    .clickable {
-                                        selectedImageUri?.let {
-                                            selectedImageUri?.let {
-                                                grpViewmodel.updateGroupProfilePicture(
-                                                    grpId = args.grpId, uri = selectedImageUri!!
-                                                ) {
-                                                    selectedImageUri = null
-                                                    isLoading = false
-                                                    if (it) {
-                                                        launchToast(
-                                                            context = context, "Success"
-                                                        )
-                                                    } else {
-                                                        launchToast(
-                                                            context = context, "try again"
-                                                        )
+                                            1 -> {
+                                                if (title.isEmpty() || message.isEmpty()) {
+                                                    launchToast(context, "Fill all the fields")
+                                                } else {
+                                                    grpViewmodel.uploadEvent(
+                                                        type = EventCategory.Meeting,
+                                                        title = title,
+                                                        message = message,
+                                                        visibility = selectedCategory,
+                                                        grpId = args.grpId
+                                                    ) {
+                                                        launchToast(context, "Upload successful")
                                                     }
                                                 }
                                             }
-                                        } ?: run {
-                                            launchToast(
-                                                context = context, "Error occured try again"
-                                            )
+
+                                            2 -> {
+                                                if (title.isEmpty() || message.isEmpty()) {
+                                                    launchToast(context, "Fill all the fields")
+                                                } else {
+                                                    grpViewmodel.uploadEvent(
+                                                        type = EventCategory.Notice,
+                                                        title = title,
+                                                        message = message,
+                                                        visibility = selectedCategory,
+                                                        grpId = args.grpId
+                                                    ) {
+                                                        launchToast(context, "Upload successful")
+                                                    }
+                                                }
+                                            }
                                         }
 
-                                    })
+                                    }) {
+                                    Text(text = "Upload", fontFamily = roboto, fontSize = 16.sp)
+                                }
+                            }
+
+
+                        }
+
+                    }
+
+                    else -> {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        if (requests.value.isEmpty()) {
+                            requests.value.forEach { item ->
+                                RequestDesign(
+                                    requestMap = item,
+                                    time = grpViewmodel.convertTimestamp(item.sentTime),
+                                    onClick = {
+                                        grpViewmodel.acceptRequest(grpId = args.grpId, item)
+                                    }
+                                ) {
+                                    grpViewmodel.declineRequest(grpId = args.grpId, item)
+                                }
+                            }
+                        } else {
+                            TextDesign(text = "No pending request")
                         }
                     }
                 }
 
+
             }
+
+
+        }
+    }
+
+    if (selectedImageUri != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 40.dp, vertical = 160.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.Black.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center
+        ) {
+            selectedImageUri?.let { uri ->
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    TextDesign(
+                        text = "Select profile picture",
+                        size = 18,
+                        color = Color.White
+                    )
+                    Image(
+                        painter = rememberAsyncImagePainter(uri),
+                        contentDescription = "Selected Image",
+                        contentScale = ContentScale.Inside,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .width(200.dp)
+                            .height(300.dp)
+                    )
+
+                    if (isLoading) {
+                        LinearProgressIndicator()
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+
+                        Image(colorFilter = ColorFilter.tint(Color.White),
+                            painter = painterResource(id = R.drawable.delete_msg),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(top = 5.dp, end = 15.dp)
+                                .size(40.dp)
+                                .clickable {
+                                    selectedImageUri = null
+                                })
+
+                        Image(colorFilter = ColorFilter.tint(Color.White),
+                            imageVector = Icons.Outlined.Done,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(top = 5.dp, end = 5.dp, bottom = 5.dp)
+                                .size(40.dp)
+                                .clickable {
+                                    selectedImageUri?.let {
+                                        selectedImageUri?.let {
+                                            grpViewmodel.updateGroupProfilePicture(
+                                                grpId = args.grpId, uri = selectedImageUri!!
+                                            ) {
+                                                selectedImageUri = null
+                                                isLoading = false
+                                                if (it) {
+                                                    launchToast(
+                                                        context = context, "Success"
+                                                    )
+                                                } else {
+                                                    launchToast(
+                                                        context = context, "try again"
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } ?: run {
+                                        launchToast(
+                                            context = context, "Error occured try again"
+                                        )
+                                    }
+
+                                }
+                        )
+                    }
+                }
+            }
+
         }
     }
 }

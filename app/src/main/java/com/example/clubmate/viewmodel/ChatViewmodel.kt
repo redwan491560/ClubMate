@@ -20,10 +20,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,28 +47,6 @@ open class ChatViewModel : ViewModel() {
     // chats lists
     private val _chats = MutableStateFlow<List<Chats>>(emptyList())
     val chats: StateFlow<List<Chats>> = _chats
-
-    // search
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
-
-    val filteredChats = combine(_chats, _searchQuery) { chats, query ->
-        if (query.isEmpty()) chats
-        else chats.filter { chat ->
-            chat.lastMessage?.messageText?.contains(query, ignoreCase = true) == true ||
-                    chat.participants.any { it.username.contains(query, ignoreCase = true) }
-        }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    // Function to update search query
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
-
-    fun setChats(newChats: List<Chats>) {
-        _chats.value = newChats
-    }
-    // search
 
     // userdata
     var userState by mutableStateOf<UserState>(UserState.Success(null))
@@ -155,7 +130,7 @@ open class ChatViewModel : ViewModel() {
                         messageText = "",
                         imageRef = imageUrl,
                         timestamp = timestamp,
-                        messageType = MessageType.Text,
+                        messageType = MessageType.Image,
                         status = MessageStatus.SENDING
                     )
                     saveMessageToDatabase(chatId, messageId, messageData)
@@ -353,7 +328,9 @@ open class ChatViewModel : ViewModel() {
                             } else {
                                 updatedChats.add(newChat)
                             }
-                            _chats.value = updatedChats
+                            _chats.value = updatedChats.sortedByDescending {
+                                it.lastMessage?.timestamp
+                            }
 
                         }
                     }
@@ -582,8 +559,78 @@ open class ChatViewModel : ViewModel() {
         _chats.value = emptyList()
     }
 
+    // incognito
+
+
+    // message list
+    private val _incognitoMessages = MutableStateFlow<List<IncognitoMessage>>(emptyList())
+    val incognitoMessages: StateFlow<List<IncognitoMessage>> = _incognitoMessages
+
+    fun sendIncognitoMessage(
+        chatId: String,
+        receiverId: String,
+        senderId: String,
+        messageText: String
+    ) {
+        val messageId = chatRef.child(chatId).child("incognito").push().key ?: ""
+        val timestamp = System.currentTimeMillis()
+
+        val messageData = IncognitoMessage(
+            messageText = messageText,
+            senderId = senderId,
+            receiverId = receiverId,
+            timestamp = timestamp,
+            messageId = messageId
+        )
+
+        chatRef.child(chatId).child("incognito").child(messageId).setValue(messageData)
+            .addOnSuccessListener {
+                Log.d("Success", "Activity added successfully")
+            }.addOnFailureListener { e ->
+                Log.e("Failure", "Failed to add activity: ${e.message}")
+            }
+    }
+
+
+    fun receiveIncognitoMessage(chatId: String) {
+        chatRef.child(chatId).child("incognito")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val messages = mutableListOf<IncognitoMessage>()
+                    for (childSnapshot in snapshot.children) {
+                        childSnapshot.getValue(IncognitoMessage::class.java)?.let {
+                            messages.add(it)
+                        }
+                    }
+                    _incognitoMessages.value = messages.sortedBy { it.timestamp }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.d("TAG", "onCancelled: error")
+                }
+            })
+    }
+
+    fun deleteIncognitoMessage(chatId: String) {
+        chatRef.child(chatId).child("incognito").removeValue()
+            .addOnSuccessListener {
+                Log.d("TAG", "onCancelled: error")
+            }.addOnFailureListener {
+                Log.d("TAG", "onCancelled: error")
+            }
+    }
+
 
 }
+
+data class IncognitoMessage(
+    val messageText: String = "",
+    val senderId: String = "",
+    val receiverId: String = "",
+    val timestamp: Long = 0L,
+    val messageId: String = ""
+)
+
 
 data class Chats(
     val chatId: String = "",

@@ -155,12 +155,12 @@ class Composables {
                             )
                         }
                         Text(
-                            text = title, fontSize = 16.sp, modifier = Modifier.padding(5.dp)
+                            text = title, fontSize = 16.sp, fontFamily = roboto, modifier = Modifier.padding(5.dp)
                         )
                     }
                     Text(
                         text = number, fontSize = 22.sp,
-                        color = Color.Red,
+                        color = Color.Red, fontFamily = roboto,
                         modifier = Modifier.padding(end = 15.dp)
                     )
                 }

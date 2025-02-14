@@ -28,8 +28,11 @@ import com.example.clubmate.ui.theme.Composables.Companion.TextDesignClickable
 import com.example.clubmate.viewmodel.GroupViewmodel
 
 @Composable
-fun TimelineScreen(args: Routes.Timeline, grpViewmodel: GroupViewmodel,navHostController: NavHostController) {
-
+fun TimelineScreen(
+    args: Routes.Timeline,
+    grpViewmodel: GroupViewmodel,
+    navHostController: NavHostController
+) {
 
 }
 

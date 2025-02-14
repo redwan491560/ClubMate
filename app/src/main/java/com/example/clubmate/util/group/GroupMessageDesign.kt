@@ -1,5 +1,6 @@
 package com.example.clubmate.util.group
 
+import android.content.ClipData
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,13 +48,19 @@ fun GroupActivityDesign(
     isSent: Boolean,
     sentTime: String,
     sentDate: String,
+    onCopied: (ClipData?) -> Unit,
     onDeleteMessage: (GroupActivity) -> Unit
 ) {
 
     var isSelected by remember { mutableStateOf(false) }
 
+    val isNumeric = activity.message.messageText.all { it.isDigit() }
+
     val bgColor by remember {
-        mutableStateOf(if (isSent) Color(0xFFD5F1C4) else Color(0xBFF1D4D4))
+        mutableStateOf(
+            if (isSent) Color(0xFFD5F1C4)
+            else Color(0xBFF1D4D4)
+        )
     }
 
     Box(
@@ -68,22 +75,46 @@ fun GroupActivityDesign(
                 horizontalAlignment = if (isSent) Alignment.End else Alignment.Start
             ) {
                 Row {
-                    Text(
-                        text = sender.username, fontSize = 12.sp, fontFamily = roboto,
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .padding(end = if (isSent) 5.dp else 0.dp),
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = sender.userType.toString(), fontSize = 14.sp, fontFamily = roboto,
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .padding(end = if (isSent) 5.dp else 0.dp),
-                        color = Color.Red, textDecoration = TextDecoration.Underline
-                    )
+                    if (isSent) {
+                        Text(
+                            text = sender.username, fontSize = 12.sp, fontFamily = roboto,
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .padding(end = 5.dp),
+                            color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = sender.userType.toString(),
+                            fontSize = 14.sp,
+                            fontFamily = roboto,
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .padding(end = 5.dp),
+                            color = Color.Red,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    } else {
+                        Text(
+                            text = sender.userType.toString(),
+                            fontSize = 14.sp,
+                            fontFamily = roboto,
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .padding(end = 0.dp),
+                            color = Color.Red,
+                            textDecoration = TextDecoration.Underline
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
 
+                        Text(
+                            text = sender.username, fontSize = 12.sp, fontFamily = roboto,
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .padding(end = 0.dp),
+                            color = Color.Black
+                        )
+                    }
                 }
 
                 Row(
@@ -94,6 +125,17 @@ fun GroupActivityDesign(
                         .padding(4.dp)
                         .pointerInput(Unit) {
                             detectTapGestures(
+                                onDoubleTap = {
+                                    val clipData = ClipData.newPlainText(
+                                        "Copied Text",
+                                        activity.message.messageText
+                                    )
+                                    clipData?.let {
+                                        onCopied(clipData)
+                                    } ?: run {
+                                        onCopied(null)
+                                    }
+                                },
                                 onLongPress = { if (isSent) isSelected = true },
                                 onTap = { if (isSelected) isSelected = false })
                         },
@@ -130,6 +172,7 @@ fun GroupActivityDesign(
                             modifier = Modifier
                                 .padding(horizontal = 15.dp)
                                 .widthIn(max = 280.dp)
+
                         )
                     }
                 }
@@ -152,12 +195,9 @@ fun GroupActivityDesign(
                     modifier = Modifier
                         .padding(bottom = 20.dp, start = 5.dp)
                         .size(30.dp)
-                        .clickable {
-                            onDeleteMessage(activity)
-                        })
+                        .clickable { onDeleteMessage(activity) }
+                )
             }
         }
     }
 }
-
-
