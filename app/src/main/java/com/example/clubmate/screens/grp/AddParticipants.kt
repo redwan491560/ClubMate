@@ -79,119 +79,132 @@ fun AddParticipants(
 
     // of someones uid does not match than add the user
 
-    Scaffold(
-        modifier = Modifier
-            .systemBarsPadding()
-            .padding(12.dp)
-    ) {
+    Scaffold {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp),
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Box(
-                modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
-            ) {
-
-
-                AsyncImage(
-                    model = grpDetails.photoUrl,
-                    contentDescription = "group photo",
-                    contentScale = ContentScale.Inside,
-                    error = painterResource(id = R.drawable.logo_primary),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .size(80.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(20.dp))
-            TextDesign(text = grpDetails.grpName, size = 17)
-            TextDesign(text = grpDetails.description, size = 17)
-
-
-            Spacer(modifier = Modifier.height(60.dp))
-            TextDesign(text = "Add Members", size = 17)
-            Spacer(modifier = Modifier.height(20.dp))
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xD5C0D0F7)), contentAlignment = Alignment.CenterStart
-            ) {
-                if (query.isEmpty()) {
-                    Text(
-                        text = "Add member by email",
-                        fontFamily = roboto,
-                        fontSize = 14.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 15.dp)
+                    .background(Color(0xCCEAEEAC))
+                    .systemBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            )
+            {
+                Box(
+                    modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+                ) {
+
+                    AsyncImage(
+                        model = grpDetails.photoUrl,
+                        contentDescription = "Sent Image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .clip(RoundedCornerShape(40.dp))
+                            .size(80.dp),
+                        error = painterResource(id = R.drawable.logo_primary), // Error Image
                     )
                 }
-                BasicTextField(
-                    value = query, onValueChange = {
-                        query = it
-                    }, modifier = Modifier
-                        .padding(15.dp)
-                        .fillMaxWidth(), textStyle = TextStyle(
-                        fontFamily = roboto, fontSize = 16.sp, color = Color.Black
-                    ), maxLines = 1, keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Done
-                    ), keyboardActions = KeyboardActions(onDone = {
-                        grpViewmodel.findUser(query)
-                    })
-                )
-                Image(painter = painterResource(id = R.drawable.search),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(end = 15.dp)
-                        .size(22.dp)
-                        .align(Alignment.CenterEnd)
-                        .rotate(270f)
-                        .clickable {
-                            grpViewmodel.findUser(query)
-                        })
+                Spacer(modifier = Modifier.height(20.dp))
+                TextDesign(text = grpDetails.grpName, size = 17)
+                TextDesign(text = grpDetails.description, size = 17)
+                Spacer(modifier = Modifier.height(10.dp))
+
             }
+
 
             Column(
-                modifier = Modifier.height(80.dp)
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 12.dp)
             ) {
-                ItemDesignAlertGroup(userState = grpViewmodel.userState)
-            }
-            Row(
-                Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Button(
-                    onClick = {
-                        if (query.isNotEmpty()) {
-                            user?.email?.let {
-                                grpViewmodel.addParticipants(
-                                    grpId = grpInfo.grpId,
-                                    email = user.email,
-                                    category = Category.General
-                                )
-                                launchToast(context = context, "participant added successfully")
-                                query = ""
-                                grpViewmodel.emptyUser()
-                            } ?: run {
-                                launchToast(context = context, "participant not found")
-
-                            }
-                        } else {
-                            launchToast(context = context, "query is empty")
-                        }
-
-
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(Color(0xFFBBF7B1))
+                Spacer(modifier = Modifier.height(40.dp))
+                TextDesign(text = "Add Members", size = 17)
+                Spacer(modifier = Modifier.height(20.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xD5C0D0F7)), contentAlignment = Alignment.CenterStart
                 ) {
-                    TextDesign(text = "Add participant")
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Add member by email",
+                            fontFamily = roboto,
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(start = 15.dp)
+                        )
+                    }
+                    BasicTextField(
+                        value = query, onValueChange = {
+                            query = it
+                        }, modifier = Modifier
+                            .padding(15.dp)
+                            .fillMaxWidth(), textStyle = TextStyle(
+                            fontFamily = roboto, fontSize = 16.sp, color = Color.Black
+                        ), maxLines = 1, keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Done
+                        ), keyboardActions = KeyboardActions(onDone = {
+                            grpViewmodel.findUser(query)
+                        })
+                    )
+                    Image(painter = painterResource(id = R.drawable.search),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(end = 15.dp)
+                            .size(22.dp)
+                            .align(Alignment.CenterEnd)
+                            .rotate(270f)
+                            .clickable {
+                                grpViewmodel.findUser(query)
+                            })
+                }
+
+                Column(
+                    modifier = Modifier.height(80.dp)
+                ) {
+                    ItemDesignAlertGroup(userState = grpViewmodel.userState)
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(
+                        onClick = {
+                            if (query.isNotEmpty()) {
+                                user?.email?.let {
+                                    grpViewmodel.addParticipants(
+                                        grpId = grpInfo.grpId,
+                                        email = user.email,
+                                        category = Category.General
+                                    )
+                                    launchToast(context = context, "participant added successfully")
+                                    query = ""
+                                    grpViewmodel.emptyUser()
+                                } ?: run {
+                                    launchToast(context = context, "participant not found")
+
+                                }
+                            } else {
+                                launchToast(context = context, "query is empty")
+                            }
+
+
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(Color(0xFFBBF7B1))
+                    ) {
+                        TextDesign(text = "Add participant")
+                    }
                 }
             }
+
+
         }
     }
 }

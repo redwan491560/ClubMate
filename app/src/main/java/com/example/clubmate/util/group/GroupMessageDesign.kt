@@ -54,8 +54,6 @@ fun GroupActivityDesign(
 
     var isSelected by remember { mutableStateOf(false) }
 
-    val isNumeric = activity.message.messageText.all { it.isDigit() }
-
     val bgColor by remember {
         mutableStateOf(
             if (isSent) Color(0xFFD5F1C4)

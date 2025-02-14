@@ -26,6 +26,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.text.SimpleDateFormat
@@ -59,6 +60,8 @@ class GroupViewmodel : ViewModel() {
     private val _grpStatus = MutableLiveData<GroupStatus>()
     val grpStatus = _grpStatus
 
+    private val _eventList = MutableStateFlow<List<EventData>>(emptyList()) // This holds the state
+    val eventList: StateFlow<List<EventData>> = _eventList // Exposed as read-only
 
     private val _grpActivity = MutableStateFlow<List<GroupActivity>>(emptyList())
     val grpActivity = _grpActivity
@@ -174,8 +177,8 @@ class GroupViewmodel : ViewModel() {
 
     fun updateGroupProfilePicture(grpId: String, uri: Uri, onComplete: (Boolean) -> Unit) {
 
-        uploadPPtoDB(imageUri = uri, grpId = grpId) {
-            grpRef.child(grpId).child("grpInfo").child("photoUrl").setValue(uri)
+        uploadPPtoDB(imageUri = uri, grpId = grpId) { path ->
+            grpRef.child(grpId).child("grpInfo").child("photoUrl").setValue(path)
                 .addOnSuccessListener { onComplete(true) }
                 .addOnFailureListener { onComplete(false) }
         }
@@ -1087,13 +1090,52 @@ class GroupViewmodel : ViewModel() {
             visibility = visibility
         )
 
-        grpRef.child(grpId).child("Events").child(type.name).child(messageId).setValue(eventData)
+        grpRef.child(grpId).child("events").child(messageId).setValue(eventData)
             .addOnSuccessListener {
                 onComplete(true)
             }.addOnFailureListener {
                 onComplete(false)
             }
 
+    }
+
+
+    // Change receiveEvent() to use continuous listener
+    fun receiveEvent(grpId: String, type: EventCategory) {
+        grpRef.child(grpId).child("events")
+            .addValueEventListener(object :
+                ValueEventListener { // Changed from addListenerForSingleValueEvent
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val eventList = mutableListOf<EventData>()
+                    for (eventSnapshot in snapshot.children) {
+                        val event = eventSnapshot.getValue(EventData::class.java)?.apply {
+                            messageId = eventSnapshot.key ?: ""
+                        }
+                        event?.let { eventList.add(it) }
+                    }
+                    _eventList.value = eventList
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    _eventList.value = emptyList()
+                }
+            })
+    }
+
+    fun deleteEvent(grpId: String, messageId: String, callback: (Boolean) -> Unit) {
+        if (messageId.isBlank()) {
+            callback(false)
+            return
+        }
+
+        grpRef.child(grpId).child("events").child(messageId)
+            .removeValue()
+            .addOnSuccessListener {
+                callback(true)
+            }
+            .addOnFailureListener { e ->
+                callback(false)
+            }
     }
 }
 
@@ -1102,7 +1144,7 @@ data class EventData(
     val type: EventCategory = EventCategory.Event,
     val title: String = "",
     val description: String = "",
-    val messageId: String = "",
+    var messageId: String = "",
     val visibility: Category = Category.General,
     val timeStamp: Long = 0L
 )

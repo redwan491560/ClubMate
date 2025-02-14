@@ -207,7 +207,6 @@ open class ChatViewModel : ViewModel() {
                             snapshot: DataSnapshot, previousChildName: String?
                         ) {
                             val message = snapshot.getValue(Message::class.java)
-
                             message?.let { it1 ->
                                 //notification
                                 val updMsg = it1.copy(messageText = it1.messageText)
@@ -497,16 +496,14 @@ open class ChatViewModel : ViewModel() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     val userInfo = snapshot.getValue(Routes.UserModel::class.java)
-                    callback(userInfo) // Return user information via the callback
+                    callback(userInfo)
                 } else {
-                    Log.e("fetchUserInfoByUid", "No user found with UID: $uid")
-                    callback(null) // No user found
+                    callback(null)
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e("fetchUserInfoByUid", "Error fetching user info: ${error.message}")
-                callback(null) // On error, return null
+                callback(null)
             }
         })
     }

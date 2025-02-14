@@ -93,8 +93,8 @@ fun App(
     val navController: NavHostController = rememberNavController()
     val authState = authViewModel.authState.observeAsState()
 
-    val grpId = "47d383c5d9d0453abf1a"
-    val uid = "eWfnuKUneLTklQmjoBSGhS4IALI3"
+    val grpId = "93beefc4b3bf4d42a1d1"
+    val uid = "zABknaet0eYXrv5LV7LNdPeHbr43"
 
     NavHost(
         navController = navController,

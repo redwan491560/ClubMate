@@ -81,15 +81,17 @@ fun LoginScreen(authViewmodel: AuthViewModel, navController: NavHostController) 
     }
 
 
-
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         Spacer(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFD3F7D7))
         )
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

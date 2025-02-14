@@ -111,7 +111,8 @@ class Routes {
 
     @Serializable
     data class Timeline(
-        val grpId: String
+        val grpId: String,
+        val uid: String
     )
 
     @Serializable

@@ -66,6 +66,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -131,7 +132,7 @@ fun Console(
 
 
     var title by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
+    var event by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
     var notice by remember { mutableStateOf("") }
 
@@ -149,8 +150,6 @@ fun Console(
         ), NavItem(
             title = "Remove members", image = R.drawable.remove_24px
         ), NavItem(
-            title = "Accept request", image = R.drawable.request
-        ), NavItem(
             title = "View members", image = R.drawable.visibility_24px
         ), NavItem(
             title = "Change roles", image = R.drawable.change_role
@@ -167,7 +166,6 @@ fun Console(
             }
         }
     }
-
 
     var isLoading by remember {
         mutableStateOf(false)
@@ -190,7 +188,7 @@ fun Console(
                     .background(Color(0xCCEAEEAC))
                     .fillMaxWidth()
                     .systemBarsPadding()
-                    .padding(horizontal = 16.dp),
+                    .padding(start = 8.dp, end = 5.dp),
                 horizontalArrangement = Arrangement.spacedBy(15.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -203,19 +201,20 @@ fun Console(
                     Image(painter = painterResource(id = R.drawable.camera),
                         contentDescription = null,
                         modifier = Modifier
-                            .padding(end = 10.dp, bottom = 10.dp)
+                            .padding(end = 10.dp, top = 10.dp, bottom = 10.dp)
                             .size(20.dp)
                             .align(Alignment.BottomEnd)
                             .clickable {
                                 openGalleryLauncher.launch("image/*")
-                            })
+                            }
+                    )
                     AsyncImage(
                         model = grpDetails.photoUrl,
                         contentDescription = "Sent Image",
-                        contentScale = ContentScale.Inside,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(40.dp))
                             .size(80.dp),
                         error = painterResource(id = R.drawable.logo_primary), // Error Image
                     )
@@ -226,11 +225,20 @@ fun Console(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        TextDesign(text = args.description, size = 16)
+                        Text(
+                            text = args.description,
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            fontFamily = roboto,
+                            modifier = Modifier.weight(9f),
+                            overflow = TextOverflow.Ellipsis
+                        )
                         Image(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = null,
-                            Modifier.size(20.dp)
+                            Modifier
+                                .size(20.dp)
+                                .weight(1f)
                         )
                     }
                     Row(
@@ -238,11 +246,14 @@ fun Console(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        TextDesign(text = args.grpName, size = 22)
+                        TextDesign(text = args.grpName, size = 22, modifier = Modifier.weight(9f))
                         Image(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = null,
-                            Modifier.size(20.dp)
+                            Modifier
+                                .size(20.dp)
+                                .weight(1f)
+
                         )
                     }
                 }
@@ -253,7 +264,7 @@ fun Console(
                     .fillMaxSize()
                     .background(Color(0xCCF0F1E1))
             ) {
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(15.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -262,7 +273,7 @@ fun Console(
                     chipsText.forEachIndexed { ind, str ->
                         Text(
                             text = str,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             textDecoration = if (state == ind) TextDecoration.Underline else TextDecoration.None,
                             color = if (state == ind) Color.Blue else Color.Black,
                             fontFamily = roboto,
@@ -375,24 +386,17 @@ fun Console(
                                                     )
 
                                                     2 -> navController.navigate(
-                                                        Routes.Request(
-                                                            uid = args.uid,
-                                                            grpId = args.grpId
-                                                        )
-                                                    )
-
-                                                    3 -> navController.navigate(
                                                         Routes.ViewAllUser(grpId = args.grpId)
                                                     )
 
-                                                    4 -> navController.navigate(
+                                                    3 -> navController.navigate(
                                                         Routes.ChangeRoles(
                                                             grpId = args.grpId,
                                                             uid = args.uid
                                                         )
                                                     )
 
-                                                    5 -> navController.navigate(
+                                                    4 -> navController.navigate(
                                                         Routes.Block(
                                                             uid = args.uid, grpId = args.grpId
                                                         )
@@ -541,9 +545,9 @@ fun Console(
                                                 .background(Color(0xD5C0D0F7)),
                                             contentAlignment = Alignment.CenterStart
                                         ) {
-                                            if (message.isEmpty()) {
+                                            if (event.isEmpty()) {
                                                 Text(
-                                                    text = "Add message",
+                                                    text = "Add event",
                                                     fontFamily = roboto,
                                                     fontSize = 16.sp,
                                                     color = Color.Black,
@@ -551,9 +555,9 @@ fun Console(
                                                 )
                                             }
                                             BasicTextField(
-                                                value = message,
+                                                value = event,
                                                 onValueChange = {
-                                                    message = it
+                                                    event = it
                                                 },
                                                 modifier = Modifier
                                                     .padding(15.dp)
@@ -763,16 +767,18 @@ fun Console(
                                     onClick = {
                                         when (chipsState) {
                                             0 -> {
-                                                if (title.isEmpty() || message.isEmpty()) {
+                                                if (title.isEmpty() || event.isEmpty()) {
                                                     launchToast(context, "Fill all the fields")
                                                 } else {
                                                     grpViewmodel.uploadEvent(
                                                         type = EventCategory.Event,
                                                         title = title,
-                                                        message = message,
+                                                        message = event,
                                                         visibility = selectedCategory,
                                                         grpId = args.grpId
                                                     ) {
+                                                        title = ""; event = ""; link = ""; notice =
+                                                        ""
                                                         launchToast(context, "Upload successful")
                                                     }
                                                 }
@@ -780,13 +786,13 @@ fun Console(
                                             }
 
                                             1 -> {
-                                                if (title.isEmpty() || message.isEmpty()) {
+                                                if (title.isEmpty() || link.isEmpty()) {
                                                     launchToast(context, "Fill all the fields")
                                                 } else {
                                                     grpViewmodel.uploadEvent(
                                                         type = EventCategory.Meeting,
                                                         title = title,
-                                                        message = message,
+                                                        message = link,
                                                         visibility = selectedCategory,
                                                         grpId = args.grpId
                                                     ) {
@@ -796,13 +802,13 @@ fun Console(
                                             }
 
                                             2 -> {
-                                                if (title.isEmpty() || message.isEmpty()) {
+                                                if (title.isEmpty() || notice.isEmpty()) {
                                                     launchToast(context, "Fill all the fields")
                                                 } else {
                                                     grpViewmodel.uploadEvent(
                                                         type = EventCategory.Notice,
                                                         title = title,
-                                                        message = message,
+                                                        message = notice,
                                                         visibility = selectedCategory,
                                                         grpId = args.grpId
                                                     ) {
@@ -817,35 +823,26 @@ fun Console(
                                 }
                             }
 
-
                         }
-
                     }
 
                     else -> {
                         Spacer(modifier = Modifier.height(10.dp))
-                        if (requests.value.isEmpty()) {
-                            requests.value.forEach { item ->
-                                RequestDesign(
-                                    requestMap = item,
-                                    time = grpViewmodel.convertTimestamp(item.sentTime),
-                                    onClick = {
-                                        grpViewmodel.acceptRequest(grpId = args.grpId, item)
-                                    }
-                                ) {
-                                    grpViewmodel.declineRequest(grpId = args.grpId, item)
+                        requests.value.forEach { item ->
+                            RequestDesign(
+                                requestMap = item,
+                                time = grpViewmodel.convertTimestamp(item.sentTime),
+                                onClick = {
+                                    grpViewmodel.acceptRequest(grpId = args.grpId, item)
                                 }
+                            ) {
+                                grpViewmodel.declineRequest(grpId = args.grpId, item)
                             }
-                        } else {
-                            TextDesign(text = "No pending request")
                         }
+
                     }
                 }
-
-
             }
-
-
         }
     }
 
@@ -1028,13 +1025,21 @@ fun ExpandableIconsRow() {
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(15.dp)
     ) {
+
+        Icon(painter = painterResource(id = R.drawable.attachment_24px),
+            contentDescription = null,
+            modifier = Modifier
+                .size(30.dp)
+                .clickable { expanded = !expanded })
+
         AnimatedVisibility(
             visible = expanded,
             enter = expandHorizontally(animationSpec = tween(durationMillis = 300)) + fadeIn(),
             exit = shrinkHorizontally(animationSpec = tween(durationMillis = 300)) + fadeOut()
         ) {
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1049,18 +1054,9 @@ fun ExpandableIconsRow() {
                     modifier = Modifier
                         .size(28.dp)
                         .clickable { /* Handle Click */ })
-                Icon(painter = painterResource(id = R.drawable.file),
-                    contentDescription = "File",
-                    modifier = Modifier
-                        .size(23.dp)
-                        .clickable { /* Handle Click */ })
+
             }
         }
 
-        Icon(painter = painterResource(id = R.drawable.attachment_24px),
-            contentDescription = null,
-            modifier = Modifier
-                .size(30.dp)
-                .clickable { expanded = !expanded })
     }
 }

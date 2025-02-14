@@ -170,7 +170,7 @@ fun GroupDetailsScreen(
                         src = painterResource(id = R.drawable.noticeboard), title = "Notice"
                     ) {
                         navController.navigate(
-                            Routes.Timeline(grpId = grpDetails.grpId)
+                            Routes.Timeline(grpId = grpDetails.grpId, uid = uid)
                         )
                     }
                     ButtonDesignDetailsScreen(

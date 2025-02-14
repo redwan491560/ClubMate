@@ -1,6 +1,8 @@
 package com.example.clubmate.privateChannel
 
 import android.annotation.SuppressLint
+import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -84,13 +86,18 @@ fun PrivateChannel(
         viewModel.listenForMessages(channelId)
     }
 
-    var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val openGalleryLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
             uri?.let {
                 selectedImageUri = it
             }
         }
+
+
+    BackHandler {
+        navController.navigate(Routes.Main)
+    }
 
 
     Scaffold(

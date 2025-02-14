@@ -17,8 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,13 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
@@ -78,10 +77,13 @@ fun ViewAllParticipants(
 
     val filteredMembers = remember(query, membersList.value) {
         membersList.value.filter {
-            it.username.contains(query, ignoreCase = true) ||
-                    it.email.contains(query, ignoreCase = true) ||
-                    it.phone.contains(query, ignoreCase = true) ||
-                    it.userType.name.contains(query, ignoreCase = true)
+            it.username.contains(query, ignoreCase = true) || it.email.contains(
+                query,
+                ignoreCase = true
+            ) || it.phone.contains(query, ignoreCase = true) || it.userType.name.contains(
+                query,
+                ignoreCase = true
+            )
         }
     }
 
@@ -91,26 +93,51 @@ fun ViewAllParticipants(
     }
 
 
-    Scaffold(
-        modifier = Modifier
-            .systemBarsPadding()
-            .padding(12.dp)
-    ) {
+    Scaffold {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
+                .background(Color(0xCCEAEEAC))
+                .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TextDesign(text = "Members of ${grpDetails.grpName}", size = 17)
+            Box(
+                modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+            ) {
+
+                AsyncImage(
+                    model = grpDetails.photoUrl,
+                    contentDescription = "Sent Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(40.dp))
+                        .size(80.dp),
+                    error = painterResource(id = R.drawable.logo_primary), // Error Image
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            TextDesign(text = grpDetails.grpName, size = 17)
+            TextDesign(text = grpDetails.description, size = 17)
+            Spacer(modifier = Modifier.height(10.dp))
+
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 180.dp, start = 15.dp, end = 15.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
+            TextDesign(text = "All members of ${grpDetails.grpName}", size = 18)
             Spacer(modifier = Modifier.height(20.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xD5C0D0F7)),
-                contentAlignment = Alignment.CenterStart
+                    .background(Color(0xD5C0D0F7)), contentAlignment = Alignment.CenterStart
             ) {
                 if (query.isEmpty()) {
                     Text(
@@ -122,25 +149,13 @@ fun ViewAllParticipants(
                     )
                 }
                 BasicTextField(
-                    value = query,
-                    onValueChange = {
+                    value = query, onValueChange = {
                         query = it
-                    },
-                    modifier = Modifier
+                    }, modifier = Modifier
                         .padding(15.dp)
-                        .fillMaxWidth(),
-                    textStyle = TextStyle(
-                        fontFamily = roboto,
-                        fontSize = 16.sp,
-                        color = Color.Black
-                    ),
-                    maxLines = 1,
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        // search member in the grpref
-                    })
+                        .fillMaxWidth(), textStyle = TextStyle(
+                        fontFamily = roboto, fontSize = 16.sp, color = Color.Black
+                    ), maxLines = 1
                 )
                 Image(painter = painterResource(id = R.drawable.search),
                     contentDescription = null,
@@ -151,8 +166,7 @@ fun ViewAllParticipants(
                         .rotate(270f)
                         .clickable {
 
-                        }
-                )
+                        })
             }
 
             Column {
@@ -166,7 +180,7 @@ fun ViewAllParticipants(
                     Text(
                         text = "User not found",
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color.Gray,
+                        color = Color.Gray, fontFamily = roboto,
                         textAlign = TextAlign.Center,
                         fontSize = 16.sp
                     )
@@ -206,8 +220,9 @@ fun ViewAllParticipants(
                     }
                 }
             }
-
         }
+
+
     }
 }
 

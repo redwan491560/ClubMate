@@ -3,6 +3,7 @@ package com.example.clubmate.screens
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -105,6 +106,10 @@ fun GroupScreen(
             }
         }
 
+    BackHandler {
+        navController.navigate(Routes.Main)
+    }
+
     Scaffold(modifier = Modifier
         .systemBarsPadding()
         .windowInsetsPadding(WindowInsets.ime)
@@ -165,7 +170,11 @@ fun GroupScreen(
                         modifier = Modifier
                             .size(32.dp)
                             .clickable {
-
+                                navController.navigate(
+                                    Routes.Timeline(
+                                        grpId = grpId, uid = userId
+                                    )
+                                )
                             }
                     )
                     Image(painter = painterResource(id = R.drawable.private_channel),

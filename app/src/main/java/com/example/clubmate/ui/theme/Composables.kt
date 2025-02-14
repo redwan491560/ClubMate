@@ -52,7 +52,7 @@ class Composables {
                 fontSize = size.sp,
                 color = color,
                 fontFamily = roboto,
-                modifier = modifier
+                modifier = modifier, overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -155,7 +155,10 @@ class Composables {
                             )
                         }
                         Text(
-                            text = title, fontSize = 16.sp, fontFamily = roboto, modifier = Modifier.padding(5.dp)
+                            text = title,
+                            fontSize = 15.sp,
+                            fontFamily = roboto,
+                            modifier = Modifier.padding(5.dp)
                         )
                     }
                     Text(

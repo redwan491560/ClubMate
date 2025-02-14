@@ -445,7 +445,7 @@ fun ChatScreen(
                 )
             ) {
                 val animatedHeight by animateDpAsState(
-                    targetValue = if (incognito) 600.dp else 0.dp,
+                    targetValue = if (incognito) 750.dp else 0.dp,
                     animationSpec = tween(durationMillis = 500),
                     label = "incognitoHeight"
                 )

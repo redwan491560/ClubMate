@@ -302,7 +302,7 @@ fun MainScreen(
             Row(
                 modifier = Modifier.padding(10.dp)
             ) {
-                if (chipsState == 0) {
+                if (chipsState == 1) {
                     Image(painter = painterResource(id = R.drawable.add_chat_fab),
                         contentDescription = null,
                         modifier = Modifier

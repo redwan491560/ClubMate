@@ -1,6 +1,7 @@
 package com.example.clubmate.screens.grp
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,19 +84,27 @@ fun ViewGroupUserDetailScreen(
         }
     }
 
+    var userDetails: Routes.UserModel? by remember {
+        mutableStateOf(null)
+    }
     LaunchedEffect(Unit) {
+        grpViewmodel.fetchUserDetailsByUid(info.userId) {
+            it?.let { userDetails = it }
+        }
         grpViewmodel.loadGroupInfo(info.grpId) { details ->
             details?.let {
                 grpDetails = details
             }
         }
+
     }
+
+
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
-            .padding(start = 15.dp, end = 10.dp, top = 20.dp),
+            .systemBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
@@ -118,14 +127,15 @@ fun ViewGroupUserDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 15.dp),
+                .background(Color(0xcccccccc))
+                .padding(vertical = 20.dp),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 15.dp, top = 20.dp),
+                    .padding(horizontal = 15.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
             ) {
@@ -138,45 +148,55 @@ fun ViewGroupUserDetailScreen(
                         .size(100.dp)
                         .clip(RoundedCornerShape(60.dp))
                 )
-                Column(modifier = Modifier.padding(start = 20.dp)) {
+                Column(
+                    modifier = Modifier.padding(start = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     TextDesign(text = grpDetails.grpName, size = 22)
-                    TextDesign(text = grpDetails.description, size = 17)
-                    TextDesign(text = info.grpId, size = 13)
+                    TextDesign(text = grpDetails.description)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 15.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .background(Color(0xCCE7ABAB))
+                .padding(vertical = 20.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            Column {
-                TextDesign(text = user.userType.toString(), size = 18, color = Color.Gray)
-                TextDesign(text = user.username, size = 22)
-                TextDesign(text = user.email, size = 16)
-                Spacer(modifier = Modifier.height(5.dp))
-                TextDesign(text = grpViewmodel.convertTimestamp(user.joinData))
-            }
-
-            AsyncImage(
-                model = user.photoUrl,
-                contentDescription = "group photo",
-                contentScale = ContentScale.Crop,
-                error = painterResource(id = R.drawable.logo_primary),
+            Row(
                 modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(60.dp))
-            )
+                    .fillMaxWidth()
+                    .padding(start = 25.dp, end = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    TextDesign(text = user.userType.toString(), size = 18, color = Color.Gray)
+                    TextDesign(text = user.username, size = 22)
+                    TextDesign(text = user.email, size = 16)
+                    Spacer(modifier = Modifier.height(5.dp))
+                    TextDesign(text = grpViewmodel.convertTimestamp(user.joinData))
+                }
+                AsyncImage(
+                    model = userDetails?.photoUrl,
+                    contentDescription = "group photo",
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.logo_primary),
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(60.dp))
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(40.dp))
 
         Column(
-            modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp), horizontalAlignment = Alignment.Start
         ) {
 
             if (currentUserIsAdmin) {

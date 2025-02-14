@@ -133,7 +133,6 @@ class PrivateChannelViewModel : ViewModel() {
                             _privateMessageList.value = messagesList
                         }
 
-                        // If message is read, delete it
                         if (msg.isSeen) {
                             deleteMessageAfterRead(chatId, msg.messageId)
                         }
@@ -168,17 +167,14 @@ class PrivateChannelViewModel : ViewModel() {
                 Log.e("Message", "Failed to delete message after reading", it)
             }
     }
-    // good
 
     fun requestId(onResult: (String) -> Unit) {
         val channelId = generateUniqueId()
 
         _channelRef.child(channelId).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
-                // if id is found regenerate using recursion
                 requestId(onResult)
             } else {
-                // return the id
                 onResult(channelId)
             }
         }.addOnFailureListener {
@@ -247,15 +243,6 @@ class PrivateChannelViewModel : ViewModel() {
         }
     }
 }
-
-data class MessageMap(
-    val messageId: String = "",
-    val message: String = "",
-    val imageUrl: String = "",
-    val timeStamp: Long = 0L,
-    val seenBySender: Boolean = false,
-    val seenByReceiver: Boolean = false
-)
 
 data class ChannelMap(
     val createdAt: Long = 0L, // Store as Long

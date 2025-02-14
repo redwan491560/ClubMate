@@ -34,7 +34,6 @@ import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.ui.theme.roboto
-import com.example.clubmate.viewmodel.MessageMap
 import com.example.clubmate.viewmodel.VanishingMessage
 
 
@@ -118,7 +117,6 @@ fun VanishingMessageDesign(
                             color = Color.Black
                         )
                     }
-
                 }
                 Text(
                     text = time, fontFamily = roboto,
@@ -136,12 +134,10 @@ fun VanishingMessageDesign(
                         modifier = Modifier
                             .padding(bottom = 20.dp, start = 5.dp)
                             .size(30.dp)
-                            .clickable {
-                                onDeleteMessage(message)
-                            })
+                            .clickable { onDeleteMessage(message) }
+                    )
                 }
             }
         }
-
     }
 }

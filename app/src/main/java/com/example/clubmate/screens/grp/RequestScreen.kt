@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -64,9 +63,6 @@ fun RequestScreen(
     var grpDetails by remember {
         mutableStateOf(Routes.GrpDetails())
     }
-    var userDetails by remember {
-        mutableStateOf(Routes.UserModel())
-    }
 
     val context = LocalContext.current
 
@@ -77,8 +73,9 @@ fun RequestScreen(
                 grpDetails = it
             }
         }
-
     }
+
+    var userDetails by remember { mutableStateOf(Routes.UserModel()) }
     LaunchedEffect(Unit) {
         groupViewmodel.fetchUserDetailsByUid(uid = args.uid) {
             it?.let {
@@ -139,19 +136,16 @@ fun RequestScreen(
                     modifier = Modifier.weight(5f),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .align(Alignment.Center),
-                        color = Color.Gray,
-                        strokeWidth = 4.dp
-                    )
+
                     AsyncImage(
-                        model = grpDetails.photoUrl,
+                        model = userDetails.photoUrl,
                         contentDescription = "group photo",
-                        contentScale = ContentScale.Inside,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(60.dp))
+                            .size(90.dp),
+                        error = painterResource(id = R.drawable.logo_primary)
+
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -174,20 +168,14 @@ fun RequestScreen(
                     modifier = Modifier.weight(5f),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .align(Alignment.Center),
-                        color = Color.Gray,
-                        strokeWidth = 4.dp
-                    )
-
                     AsyncImage(
                         model = grpDetails.photoUrl,
                         contentDescription = "group photo",
-                        contentScale = ContentScale.Inside,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(60.dp))
+                            .size(90.dp),
+                        error = painterResource(id = R.drawable.logo_primary)
                     )
                 }
             }
