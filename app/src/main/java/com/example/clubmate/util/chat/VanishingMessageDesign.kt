@@ -86,7 +86,6 @@ fun VanishingMessageDesign(
                         },
                 ) {
                     if (message.imageUrl.isNotEmpty()) {
-                        // Display Image with preloading and caching
                         Box(modifier = Modifier.size(250.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
                                 modifier = Modifier
@@ -102,8 +101,7 @@ fun VanishingMessageDesign(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .size(200.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                error = painterResource(id = R.drawable.add_24px) // Error Image
+                                    .clip(RoundedCornerShape(8.dp))
                             )
                         }
                     } else {

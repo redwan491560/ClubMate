@@ -308,16 +308,18 @@ fun ChatScreen(
                 shape = RoundedCornerShape(10.dp),
                 maxLines = 3,
                 leadingIcon = {
-                    Image(painter = painterResource(id = R.drawable.attachment_24px),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clickable {
-                                if (incognito) launchToast(
-                                    context, "cannot send image in incognito mode"
-                                )
-                                else openGalleryLauncher.launch("image/*")
-                            })
+                    if (!incognito) {
+                        Image(painter = painterResource(id = R.drawable.attachment_24px),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clickable {
+                                    if (incognito) launchToast(
+                                        context, "cannot send image in incognito mode"
+                                    )
+                                    else openGalleryLauncher.launch("image/*")
+                                })
+                    }
                 },
                 trailingIcon = {
                     Image(painter = painterResource(id = R.drawable.send_24px),
@@ -364,7 +366,8 @@ fun ChatScreen(
                                         }
                                     }
                                 }
-                            })
+                            }
+                    )
                 },
                 textStyle = TextStyle(
                     fontFamily = roboto, fontSize = 18.sp

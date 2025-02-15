@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.screens.launchToast
@@ -153,6 +156,64 @@ fun PrivateChannel(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
+                selectedImageUri?.let { uri ->
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 0.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF3A4233)),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(8f),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(uri),
+                                contentDescription = "Selected Image",
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .width(250.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(top = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.edit_button),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(top = 5.dp, end = 5.dp, bottom = 5.dp)
+                                    .size(23.dp),
+                                colorFilter = ColorFilter.tint(Color(0xFFF0F0D3))
+                            )
+                            Image(
+                                painter = painterResource(id = R.drawable.delete_msg),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(top = 5.dp, end = 5.dp)
+                                    .size(40.dp)
+                                    .clickable {
+                                        selectedImageUri = null
+                                    },
+                                colorFilter = ColorFilter.tint(
+                                    Color(0xFFF0F0D3)
+                                )
+                            )
+                        }
+                    }
+
+                }
+
+
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
@@ -176,19 +237,31 @@ fun PrivateChannel(
                             modifier = Modifier
                                 .size(30.dp)
                                 .clickable {
-                                    if (text.isEmpty()) {
-                                        launchToast(context = context, "text cannot be empty")
-                                    } else {
-                                        if (uid.isNotEmpty()) {
+
+                                    if (uid.isNotEmpty()) {
+                                        selectedImageUri?.let { imageUri ->
                                             viewModel.sendVanishingMessage(
-                                                chatId = channelId,
+                                                channelId = channelId,
                                                 uid = uid,
-                                                messageText = text.trim(),
-                                                imageUrl = ""
+                                                messageText = "",
+                                                imageUri = imageUri
                                             )
-                                            text = ""
-                                        } else {
-                                            launchToast(context = context, "reenter the channel")
+                                            selectedImageUri = null
+                                        } ?: run {
+                                            val sentMessage = text.trim()
+                                            if (sentMessage.isNotEmpty()) {
+                                                viewModel.sendVanishingMessage(
+                                                    channelId = channelId,
+                                                    uid = uid,
+                                                    messageText = text.trim(),
+                                                    imageUri = null
+                                                )
+                                                text = ""
+                                            } else {
+                                                launchToast(
+                                                    context, "Message cannot be empty"
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -246,20 +319,17 @@ fun PrivateChannel(
                     .padding(start = 8.dp, top = 90.dp, end = 8.dp, bottom = 0.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                items(messages.value.sortedBy { it.timestampSent }) {
+                items(messages.value.sortedBy { it.timestampSent }) { it1 ->
                     VanishingMessageDesign(
-                        message = it,
-                        isSent = (it.senderId == uid),
-                        time = viewModel.convertTimestamp(it.timestampSent)
+                        message = it1,
+                        isSent = (it1.senderId == uid),
+                        time = viewModel.convertTimestamp(it1.timestampSent)
                     ) {
-                        // delete messages
+                        viewModel.deleteIndividualMessage(channelId, it1) {}
                     }
-
                 }
             }
-
         }
-
     }
 }
 

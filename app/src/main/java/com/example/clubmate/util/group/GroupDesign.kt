@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,17 +18,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import com.example.clubmate.R
 import com.example.clubmate.ui.theme.roboto
 import com.example.clubmate.viewmodel.GroupActivity
 
 
 @Composable
 fun GroupDesign(
-    grpName: String, lastActivity: GroupActivity, onClick: () -> Unit
+    grpName: String, photo: String, lastActivity: GroupActivity, onClick: () -> Unit
 ) {
 
     val name by remember { mutableStateOf(grpName) }
@@ -42,6 +49,17 @@ fun GroupDesign(
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+
+            AsyncImage(
+                model = photo,
+                contentDescription = "group photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(30.dp)),
+                error = painterResource(id = R.drawable.logo_primary)
+            )
+
             Spacer(modifier = Modifier.width(10.dp))
             Column {
                 Text(

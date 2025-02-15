@@ -15,7 +15,6 @@ import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.util.MessageType
 import com.example.clubmate.util.chat.Message
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -340,7 +339,7 @@ open class ChatViewModel : ViewModel() {
         _messages.value = emptyList()
     }
 
-    fun listenForChats() {
+    private fun listenForChats() {
         receiverId?.let {
             chatRef.addChildEventListener(object : ChildEventListener {
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {

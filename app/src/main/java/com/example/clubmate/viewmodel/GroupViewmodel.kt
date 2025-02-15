@@ -249,7 +249,6 @@ class GroupViewmodel : ViewModel() {
                         return
                     }
 
-                    val fetchedGroups = mutableListOf<GroupDetails>()
                     val deferredList = mutableListOf<Deferred<GroupDetails?>>()
 
                     viewModelScope.launch {
@@ -1152,6 +1151,7 @@ data class EventData(
 data class GroupDetails(
     val grpId: String = "",
     val grpName: String = "",
+    val photoUrl: String = "",
     var lastActivity: GroupActivity = GroupActivity()
 )
 

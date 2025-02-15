@@ -629,6 +629,7 @@ fun MainScreen(
                                         currentUser.value?.uid?.let { uid ->
                                             GroupDesign(
                                                 grpName = item.grpName,
+                                                photo = item.photoUrl,
                                                 lastActivity = item.lastActivity
                                             ) {
                                                 navController.navigate(
@@ -691,6 +692,7 @@ fun MainScreen(
                                         currentUser.value?.uid?.let { uid ->
                                             GroupDesign(
                                                 grpName = item.grpName,
+                                                photo = item.photoUrl,
                                                 lastActivity = item.lastActivity
                                             ) {
                                                 navController.navigate(
