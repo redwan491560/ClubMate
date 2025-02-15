@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ButtonDefaults
@@ -27,13 +29,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
 import com.example.clubmate.R
 import com.example.clubmate.db.Routes
 import com.example.clubmate.ui.theme.Composables.Companion.TextDesign
@@ -59,7 +64,14 @@ fun GroupDetailsScreen(
             currentUserIsAdmin = it
         }
     }
-
+    var details by remember { mutableStateOf(Routes.GrpDetails()) }
+    LaunchedEffect(Unit) {
+        grpViewModel.loadGroupInfo(grpDetails.grpId) { detail ->
+            detail?.let {
+                details = detail
+            }
+        }
+    }
 
     var admin by remember { mutableStateOf(Routes.UserModel()) }
 
@@ -88,53 +100,6 @@ fun GroupDetailsScreen(
                 Spacer(modifier = Modifier.width(25.dp))
                 TextDesign(text = "Group details", size = 18)
             }
-        }, bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 30.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF5C0C0)),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.width(160.dp),
-                    onClick = {
-
-                    }) {
-                    TextDesign(text = "Block Group")
-                }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF3DBDB)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.width(160.dp),
-                        onClick = {
-
-                        }) {
-                        TextDesign(text = "Report Group")
-                    }
-
-                    TextButton(
-                        onClick = {
-                            grpViewModel.leaveGroup(
-                                uid = uid,
-                                grpId = grpDetails.grpId
-                            ) { value ->
-                                if (value) navController.navigate(Routes.Main)
-                                else launchToast(context, "Leave attempt unsuccessful")
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(Color.Red),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.width(160.dp),
-                    ) {
-                        TextDesign(text = "Leave Group")
-                    }
-
-                }
-            }
-
         }) {
 
         Column(
@@ -149,15 +114,20 @@ fun GroupDetailsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_primary),
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp)
+
+                AsyncImage(
+                    model = details.photoUrl,
+                    contentDescription = "group photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(60.dp))
                 )
+                Spacer(modifier = Modifier.height(5.dp))
                 TextDesign(text = grpDetails.grpName, size = 18)
                 TextDesign(text = grpDetails.description, size = 14)
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center
@@ -195,7 +165,10 @@ fun GroupDetailsScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(
+                    rememberScrollState()
+                )
             ) {
 
                 DetailsIconDesign("name", grpDetails.grpName) {}
@@ -215,28 +188,86 @@ fun GroupDetailsScreen(
                     tag = "created at",
                     value = grpViewModel.convertTimestamp(grpDetails.createdAt)
                 ) {}
-            }
 
-            Spacer(modifier = Modifier.height(60.dp))
-            Column(
-                modifier = Modifier.padding(horizontal = 15.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconDesignDetailScreen(
-                    src = painterResource(id = R.drawable.baseline_favorite_border_24),
-                    title = "Add to favourites"
+                Spacer(modifier = Modifier.height(10.dp))
+                Column(
+                    modifier = Modifier.padding(horizontal = 15.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    IconDesignDetailScreen(
+                        src = painterResource(id = R.drawable.visibility_24px),
+                        title = "View all participants"
+                    ) {
+                        navController.navigate(
+                            Routes.ViewAllUser(
+                                grpId = details.grpId
+                            )
+                        )
+                    }
+                    IconDesignDetailScreen(
+                        src = painterResource(id = R.drawable.baseline_favorite_border_24),
+                        title = "Add to favourites"
+                    ) {
 
+                    }
+                    IconDesignDetailScreen(
+                        src = painterResource(id = R.drawable.baseline_notifications_off_24),
+                        title = "Turn off notification"
+                    ) {
+
+                    }
+                    IconDesignDetailScreen(
+                        src = painterResource(id = R.drawable.archive), title = "Archive group "
+                    ) {
+
+                    }
                 }
-                IconDesignDetailScreen(
-                    src = painterResource(id = R.drawable.baseline_notifications_off_24),
-                    title = "Turn off notification"
-                ) {
+                Spacer(modifier = Modifier.height(50.dp))
 
-                }
-                IconDesignDetailScreen(
-                    src = painterResource(id = R.drawable.archive), title = "Archive group "
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 30.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
+                    TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF5C0C0)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.width(160.dp),
+                        onClick = {
+
+                        }) {
+                        TextDesign(text = "Block Group")
+                    }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        TextButton(colors = ButtonDefaults.buttonColors(Color(0xFFF3DBDB)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.width(160.dp),
+                            onClick = {
+
+                            }) {
+                            TextDesign(text = "Report Group")
+                        }
+
+                        TextButton(
+                            onClick = {
+                                grpViewModel.leaveGroup(
+                                    uid = uid,
+                                    grpId = grpDetails.grpId
+                                ) { value ->
+                                    if (value) navController.navigate(Routes.Main)
+                                    else launchToast(context, "Leave attempt unsuccessful")
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(Color.Red),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.width(160.dp),
+                        ) {
+                            TextDesign(text = "Leave Group")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(100.dp))
 
                 }
             }

@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
@@ -117,8 +118,10 @@ fun TimelineScreen(
 
                 AsyncImage(
                     model = grpDetails.photoUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(100.dp),
+                    contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(50.dp)),
                     error = painterResource(id = R.drawable.logo_primary)
                 )
                 TextDesign(text = grpDetails.grpName, size = 20)
@@ -412,13 +415,15 @@ fun EventComponent(
                         TextDesign(
                             text = title,
                             size = 18,
+                            color = Color.Gray,
                             modifier = Modifier
                                 .padding(top = 5.dp)
                         )
+                        Spacer(modifier = Modifier.height(3.dp))
                         TextDesign(
                             size = 14,
                             text = message,
-                            color = Color.Gray
+                            color = Color.Black
                         )
                     }
 

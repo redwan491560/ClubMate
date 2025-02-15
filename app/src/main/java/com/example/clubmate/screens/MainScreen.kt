@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -216,7 +217,6 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFFDF7F4))
-
             ) {
                 Row(
                     modifier = Modifier
@@ -568,6 +568,15 @@ fun MainScreen(
                                     fontFamily = roboto,
                                     modifier = Modifier.clickable {
                                         chipsState = index
+                                        if (index == 0){
+                                            currentUser.value?.let {
+                                                chatViewmodel.listenForChats(currentUser.value!!.uid)
+                                            }
+                                        }else{
+                                            currentUser.value?.let {
+                                                grpViewmodel.listenForGroups(it.uid)
+                                            }
+                                        }
                                     })
                             }
                         }
@@ -719,6 +728,12 @@ fun MainScreen(
                             TextDesign(text = "Connect to internet", size = 18)
                         }
                     }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Absolute.Center
+                ) {
+                    TextDesign(text = "alpha version 1.6.11", size = 11)
                 }
             }
         }

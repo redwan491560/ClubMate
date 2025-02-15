@@ -95,18 +95,6 @@ open class ChatViewModel : ViewModel() {
         }
     }
 
-    private fun saveMessageToDatabase(
-        chatId: String, messageId: String, messageData: Message
-    ) {
-
-        chatRef.child(chatId).child("messages").child(messageId).setValue(messageData)
-            .addOnSuccessListener {
-                Log.d("Success", "Activity added successfully")
-            }.addOnFailureListener { e ->
-                Log.e("Failure", "Failed to add activity: ${e.message}")
-            }
-    }
-
 
     fun sendMessage(
         chatId: String,
@@ -153,6 +141,18 @@ open class ChatViewModel : ViewModel() {
             }
 
         }
+    }
+
+    private fun saveMessageToDatabase(
+        chatId: String, messageId: String, messageData: Message
+    ) {
+
+        chatRef.child(chatId).child("messages").child(messageId).setValue(messageData)
+            .addOnSuccessListener {
+                Log.d("Success", "Activity added successfully")
+            }.addOnFailureListener { e ->
+                Log.e("Failure", "Failed to add activity: ${e.message}")
+            }
     }
 
     private fun uploadImageToStorage(imageUri: Uri, chatId: String, onComplete: (String) -> Unit) {
@@ -557,6 +557,58 @@ open class ChatViewModel : ViewModel() {
     }
 
     // incognito
+
+    fun deleteMyMessages(chatId: String, senderId: String, onComplete: (Boolean) -> Unit) {
+        chatRef.child(chatId).child("messages").get().addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                val updates = mutableMapOf<String, Any?>()
+
+                snapshot.children.forEach { messageSnapshot ->
+                    val message = messageSnapshot.getValue(Message::class.java)
+                    if (message != null && message.senderId == senderId) {
+                        updates[messageSnapshot.key!!] = null
+                    }
+                }
+
+                if (updates.isNotEmpty()) {
+                    chatRef.child(chatId).child("messages").updateChildren(updates)
+                        .addOnSuccessListener {
+                            deleteLastMessage(chatId, senderId)
+                            onComplete(true)
+                        }
+                        .addOnFailureListener {
+                            onComplete(false)
+                        }
+                } else {
+                    deleteLastMessage(chatId, senderId)
+                    onComplete(false)
+                }
+            } else {
+                deleteLastMessage(chatId, senderId)
+                onComplete(false)
+            }
+        }.addOnFailureListener { e ->
+            onComplete(false)
+        }
+    }
+
+    private fun deleteLastMessage(chatId: String, senderId: String) {
+        chatRef.child(chatId).child("msg").child("last").get().addOnSuccessListener { snapshot ->
+            val lastMessage = snapshot.getValue(Message::class.java)
+
+            if (lastMessage != null && lastMessage.senderId == senderId) {
+                snapshot.ref.removeValue().addOnSuccessListener {
+                    Log.d("DeleteMessage", "Last message deleted successfully")
+                }.addOnFailureListener { e ->
+                    Log.e("DeleteMessage", "Failed to delete last message: ${e.message}")
+                }
+            } else {
+                Log.d("DeleteMessage", "Last message is not sent by the user or does not exist")
+            }
+        }.addOnFailureListener { e ->
+            Log.e("DeleteMessage", "Error fetching last message: ${e.message}")
+        }
+    }
 
 
     // message list

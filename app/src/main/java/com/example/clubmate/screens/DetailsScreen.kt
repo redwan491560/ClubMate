@@ -69,7 +69,19 @@ fun UserDetailsScreen(
             }
         }
     }
+    var currentUser by remember {
+        mutableStateOf(Routes.UserModel())
+    }
 
+    LaunchedEffect(Unit) {
+        chatViewmodel.getParticipants(userDetails.chatID) {
+            it.let {
+                currentUser = if (it[0].uid == userDetails.uid) it[1]
+                else it[0]
+            }
+        }
+
+    }
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -117,7 +129,12 @@ fun UserDetailsScreen(
 
                     TextButton(
                         onClick = {
-
+                            chatViewmodel.deleteMyMessages(
+                                chatId = userDetails.chatID, senderId = currentUser.uid
+                            ) {
+                                if (it) launchToast(context, "Message deleted successfully")
+                                else launchToast(context, "Error occurred")
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(Color.Red),
                         shape = RoundedCornerShape(8.dp),
@@ -183,6 +200,7 @@ fun UserDetailsScreen(
 
                 }
             }
+//            TextDesign(text = currentUser.uid)
 
             Spacer(modifier = Modifier.height(20.dp))
 

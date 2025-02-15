@@ -846,6 +846,7 @@ fun Console(
         }
     }
 
+
     if (selectedImageUri != null) {
         Box(
             modifier = Modifier
@@ -855,6 +856,7 @@ fun Console(
                 .background(Color.Black.copy(alpha = 0.7f)),
             contentAlignment = Alignment.Center
         ) {
+
             selectedImageUri?.let { uri ->
 
                 Column(
@@ -904,23 +906,28 @@ fun Console(
                                 .size(40.dp)
                                 .clickable {
                                     selectedImageUri?.let {
-                                        selectedImageUri?.let {
-                                            grpViewmodel.updateGroupProfilePicture(
-                                                grpId = args.grpId, uri = selectedImageUri!!
-                                            ) {
-                                                selectedImageUri = null
-                                                isLoading = false
-                                                if (it) {
-                                                    launchToast(
-                                                        context = context, "Success"
-                                                    )
-                                                } else {
-                                                    launchToast(
-                                                        context = context, "try again"
-                                                    )
+                                        isLoading = true
+                                        grpViewmodel.updateGroupProfilePicture(
+                                            grpId = args.grpId, uri = selectedImageUri!!
+                                        ) {
+                                            selectedImageUri = null
+                                            isLoading = false
+                                            if (it) {
+                                                grpViewmodel.loadGroupInfo(args.grpId) { details ->
+                                                    details?.let {
+                                                        grpDetails = details
+                                                    }
                                                 }
+                                                launchToast(
+                                                    context = context, "Success"
+                                                )
+                                            } else {
+                                                launchToast(
+                                                    context = context, "try again"
+                                                )
                                             }
                                         }
+
                                     } ?: run {
                                         launchToast(
                                             context = context, "Error occured try again"

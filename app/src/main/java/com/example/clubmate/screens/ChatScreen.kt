@@ -149,10 +149,12 @@ fun ChatScreen(
             }
         }
 
-
     BackHandler {
         chatViewmodel.emptyUser()
         navController.navigateUp()
+        currentUser?.let {
+            chatViewmodel.listenForChats(currentUser!!.uid)
+        }
     }
 
     Scaffold(modifier = Modifier
@@ -403,7 +405,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFFDF7F4))
-                .padding(bottom = 60.dp, top = 70.dp),
+                .padding(bottom = 60.dp, top = 80.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
 
@@ -445,7 +447,7 @@ fun ChatScreen(
                 )
             ) {
                 val animatedHeight by animateDpAsState(
-                    targetValue = if (incognito) 750.dp else 0.dp,
+                    targetValue = if (incognito) 600.dp else 0.dp,
                     animationSpec = tween(durationMillis = 500),
                     label = "incognitoHeight"
                 )
