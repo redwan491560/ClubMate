@@ -152,261 +152,243 @@ fun ChatScreen(
     BackHandler {
         chatViewmodel.emptyUser()
         navController.navigateUp()
-        currentUser?.let {
-            chatViewmodel.listenForChats(currentUser!!.uid)
-        }
     }
 
     Scaffold(modifier = Modifier
         .systemBarsPadding()
         .background(Color(0xFFFDF7F4))
         .windowInsetsPadding(WindowInsets.ime)
-        .padding(vertical = 5.dp),
-        topBar = {
-            Column(
+        .padding(vertical = 5.dp), topBar = {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFFF3E5E5))
+                    .padding(horizontal = 15.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFFF3E5E5))
-                        .padding(horizontal = 15.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .weight(8f)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
+                    AsyncImage(
+                        model = details?.photoUrl,
+                        contentDescription = "group photo",
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.logo_primary),
                         modifier = Modifier
-                            .weight(8f)
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = details?.photoUrl,
-                            contentDescription = "group photo",
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(id = R.drawable.logo_primary),
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(30.dp))
-                        )
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(30.dp))
+                    )
 
-                        Spacer(modifier = Modifier.width(15.dp))
-                        Column {
-                            userModel.run {
-                                Text(
-                                    text = username,
-                                    fontSize = 18.sp,
-                                    fontFamily = roboto,
-                                )
+                    Spacer(modifier = Modifier.width(15.dp))
+                    Column {
+                        userModel.run {
+                            Text(
+                                text = username,
+                                fontSize = 18.sp,
+                                fontFamily = roboto,
+                            )
 
-                                TextDesignClickable(text = "View Profile", size = 14) {
-                                    chatViewmodel.fetchUserByUid(receiverId) { user ->
-                                        user?.let {
-                                            navController.navigate(
-                                                Routes.UserDetails(
-                                                    username = username,
-                                                    email = email,
-                                                    uid = uid,
-                                                    chatID = chatID,
-                                                    phone = it.phone
-                                                )
+                            TextDesignClickable(text = "View Profile", size = 14) {
+                                chatViewmodel.fetchUserByUid(receiverId) { user ->
+                                    user?.let {
+                                        navController.navigate(
+                                            Routes.UserDetails(
+                                                username = username,
+                                                email = email,
+                                                uid = uid,
+                                                chatID = chatID,
+                                                phone = it.phone
                                             )
-                                        }
+                                        )
                                     }
                                 }
-
                             }
                         }
                     }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        Image(painter = painterResource(id = R.drawable.call_icon),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clickable {
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(end = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Image(painter = painterResource(id = R.drawable.call_icon),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clickable {
 
-                                }
-                        )
-                        Image(painter = painterResource(id = R.drawable.incognito),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(35.dp)
-                                .clickable {
-                                    incognito = !incognito
-                                }
-                        )
-
-                    }
+                            })
+                    Image(painter = painterResource(id = R.drawable.incognito),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(35.dp)
+                            .clickable {
+                                incognito = !incognito
+                            })
                 }
             }
+        }
 
-        },
-        bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp), horizontalAlignment = Alignment.Start
-            ) {
+    }, bottomBar = {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
 
-                selectedImageUri?.let { uri ->
+            selectedImageUri?.let { uri ->
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF3A4233)),
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 0.dp, vertical = 6.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF3A4233)),
+                        modifier = Modifier.weight(8f),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Row(
-                            modifier = Modifier.weight(8f),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = rememberAsyncImagePainter(uri),
-                                contentDescription = "Selected Image",
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .width(250.dp)
-                            )
-                        }
-
-                        Column(
+                        Image(
+                            painter = rememberAsyncImagePainter(uri),
+                            contentDescription = "Selected Image",
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(top = 10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.edit_button),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(top = 5.dp, end = 5.dp, bottom = 5.dp)
-                                    .size(23.dp),
-                                colorFilter = ColorFilter.tint(Color(0xFFF0F0D3))
-                            )
-                            Image(
-                                painter = painterResource(id = R.drawable.delete_msg),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(top = 5.dp, end = 5.dp)
-                                    .size(40.dp)
-                                    .clickable {
-                                        selectedImageUri = null
-                                    },
-                                colorFilter = ColorFilter.tint(
-                                    Color(0xFFF0F0D3)
-                                )
-                            )
-                        }
+                                .padding(8.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .width(250.dp)
+                        )
                     }
 
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(top = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.edit_button),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(top = 5.dp, end = 5.dp, bottom = 5.dp)
+                                .size(23.dp),
+                            colorFilter = ColorFilter.tint(Color(0xFFF0F0D3))
+                        )
+                        Image(
+                            painter = painterResource(id = R.drawable.delete_msg),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(top = 5.dp, end = 5.dp)
+                                .size(40.dp)
+                                .clickable {
+                                    selectedImageUri = null
+                                },
+                            colorFilter = ColorFilter.tint(
+                                Color(0xFFF0F0D3)
+                            )
+                        )
+                    }
                 }
 
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    shape = RoundedCornerShape(10.dp),
-                    maxLines = 3,
-                    leadingIcon = {
-                        Image(
-                            painter = painterResource(id = R.drawable.attachment_24px),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clickable {
-                                    if (incognito) launchToast(
-                                        context,
-                                        "cannot send image in incognito mode"
-                                    )
-                                    else openGalleryLauncher.launch("image/*")
-                                }
-                        )
-                    },
-                    trailingIcon = {
-                        Image(
-                            painter = painterResource(id = R.drawable.send_24px),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clickable {
+            }
 
-                                    val uid = currentUser?.uid
-                                    if (uid != null) {
-                                        selectedImageUri?.let { imageUri ->
-                                            chatViewmodel.sendMessage(
-                                                chatId = userModel.chatID,
-                                                messageText = "",
-                                                imageUri = imageUri,
-                                                senderId = uid,
-                                                receiverId = receiverId
-                                            )
-                                            selectedImageUri = null
-                                        } ?: run {
-                                            val sentMessage = text.trim()
-                                            if (sentMessage.isNotEmpty()) {
-                                                if (incognito) {
-                                                    mainViewmodel.sendIncognitoMessage(
-                                                        chatId = userModel.chatID,
-                                                        messageText = sentMessage,
-                                                        senderId = uid,
-                                                        receiverId = receiverId
-                                                    )
-                                                } else {
-                                                    chatViewmodel.sendMessage(
-                                                        chatId = userModel.chatID,
-                                                        messageText = sentMessage,
-                                                        senderId = uid,
-                                                        receiverId = receiverId
-                                                    )
-                                                }
+            OutlinedTextField(value = text,
+                onValueChange = { text = it },
+                shape = RoundedCornerShape(10.dp),
+                maxLines = 3,
+                leadingIcon = {
+                    Image(painter = painterResource(id = R.drawable.attachment_24px),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clickable {
+                                if (incognito) launchToast(
+                                    context, "cannot send image in incognito mode"
+                                )
+                                else openGalleryLauncher.launch("image/*")
+                            })
+                },
+                trailingIcon = {
+                    Image(painter = painterResource(id = R.drawable.send_24px),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clickable {
 
-                                                text = ""
+                                val uid = currentUser?.uid
+                                if (uid != null) {
+                                    selectedImageUri?.let { imageUri ->
+                                        chatViewmodel.sendMessage(
+                                            chatId = userModel.chatID,
+                                            messageText = "",
+                                            imageUri = imageUri,
+                                            senderId = uid,
+                                            receiverId = receiverId
+                                        )
+                                        selectedImageUri = null
+                                    } ?: run {
+                                        val sentMessage = text.trim()
+                                        if (sentMessage.isNotEmpty()) {
+                                            if (incognito) {
+                                                mainViewmodel.sendIncognitoMessage(
+                                                    chatId = userModel.chatID,
+                                                    messageText = sentMessage,
+                                                    senderId = uid,
+                                                    receiverId = receiverId
+                                                )
                                             } else {
-                                                launchToast(
-                                                    context,
-                                                    "Message cannot be empty"
+                                                chatViewmodel.sendMessage(
+                                                    chatId = userModel.chatID,
+                                                    messageText = sentMessage,
+                                                    senderId = uid,
+                                                    receiverId = receiverId
                                                 )
                                             }
+
+                                            text = ""
+                                        } else {
+                                            launchToast(
+                                                context, "Message cannot be empty"
+                                            )
                                         }
                                     }
                                 }
-                        )
-                    },
-                    textStyle = TextStyle(
+                            })
+                },
+                textStyle = TextStyle(
+                    fontFamily = roboto, fontSize = 18.sp
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        text = "Enter message",
                         fontFamily = roboto,
-                        fontSize = 18.sp
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text(
-                            text = "Enter message",
-                            fontFamily = roboto,
-                            fontSize = 18.sp,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                )
+                        fontSize = 18.sp,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                })
 
-            }
-        }) {
+        }
+    }) {
 
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFFDF7F4))
-                .padding(bottom = 60.dp, top = 80.dp),
-            verticalArrangement = Arrangement.Bottom
+                .padding(bottom = 60.dp, top = 80.dp), verticalArrangement = Arrangement.Bottom
         ) {
 
             currentUser?.let { user ->
@@ -423,8 +405,7 @@ fun ChatScreen(
                         val message = messages.value[ind]
 
                         if (message.messageText.isNotEmpty() || message.imageRef.isNotEmpty()) {
-                            MessageItem(
-                                message = message,
+                            MessageItem(message = message,
                                 isSent = messages.value[ind].senderId == user.uid,
                                 time = chatViewmodel.convertTimestampToDate(messages.value[ind].timestamp),
                                 onDeleteMessage = { msg ->
@@ -438,11 +419,9 @@ fun ChatScreen(
             }
 
             AnimatedVisibility(
-                visible = incognito,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(
+                visible = incognito, enter = slideInVertically(initialOffsetY = { it }) + fadeIn(
                     animationSpec = tween(500)
-                ),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(
+                ), exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(
                     animationSpec = tween(500)
                 )
             ) {
@@ -463,9 +442,7 @@ fun ChatScreen(
                 ) {
                     Spacer(modifier = Modifier.height(5.dp))
                     TextDesign(
-                        text = "Incognito mode",
-                        size = 18,
-                        color = Color.White
+                        text = "Incognito mode", size = 18, color = Color.White
                     )
 
                     currentUser?.let { user ->

@@ -301,7 +301,7 @@ fun MeetingComponent(
                                 onTap = { showDelete = false }
                             )
                         }
-                    }
+                    }, horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -341,24 +341,18 @@ fun MeetingComponent(
                                     }
                                 }
                         )
-
-                    }
-
-                    if (showDelete && isAdmin) {
-                        DeleteButton(onDelete = {
-                            onDelete()
-                            showDelete = false
-                        })
                     }
                 }
-
+                if (showDelete && isAdmin) {
+                    DeleteButton(onDelete = {
+                        onDelete()
+                        showDelete = false
+                    })
+                }
             }
         }
-
     }
-
 }
-
 
 @Composable
 fun EventComponent(
@@ -396,7 +390,7 @@ fun EventComponent(
                                 onTap = { showDelete = false }
                             )
                         }
-                    }
+                    }, horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -404,7 +398,6 @@ fun EventComponent(
                 ) {
                     TextDesign(text = date, size = 12)
                     TextDesignClickable(text = visibility.name, size = 16) {}
-
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -427,12 +420,13 @@ fun EventComponent(
                         )
                     }
 
-                    if (showDelete && isAdmin) {
-                        DeleteButton(onDelete = {
-                            onDelete()
-                            showDelete = false
-                        })
-                    }
+                }
+
+                if (showDelete && isAdmin) {
+                    DeleteButton(onDelete = {
+                        onDelete()
+                        showDelete = false
+                    })
                 }
             }
         }
@@ -468,6 +462,7 @@ fun NoticeComponent(
         ) {
             Column(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .padding(horizontal = 5.dp)
                     .pointerInput(Unit) {
                         if (isAdmin) {
@@ -476,7 +471,7 @@ fun NoticeComponent(
                                 onTap = { showDelete = false }
                             )
                         }
-                    }
+                    }, horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -504,15 +499,13 @@ fun NoticeComponent(
                             color = Color.Gray
                         )
                     }
-
-                    if (showDelete && isAdmin) {
-                        DeleteButton(onDelete = {
-                            onDelete()
-                            showDelete = false
-                        })
-                    }
                 }
-
+                if (showDelete && isAdmin) {
+                    DeleteButton(onDelete = {
+                        onDelete()
+                        showDelete = false
+                    })
+                }
             }
         }
 
@@ -527,6 +520,7 @@ private fun DeleteButton(onDelete: () -> Unit) {
         contentAlignment = Alignment.CenterEnd
     ) {
         Image(
+
             painter = painterResource(id = R.drawable.delete_msg),
             contentDescription = null,
             Modifier

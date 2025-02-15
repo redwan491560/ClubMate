@@ -14,11 +14,15 @@ import com.example.clubmate.db.UserState
 import com.example.clubmate.screens.MessageStatus
 import com.example.clubmate.util.MessageType
 import com.example.clubmate.util.chat.Message
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -34,7 +38,15 @@ open class ChatViewModel : ViewModel() {
     private val _db = FirebaseDatabase.getInstance()
     private val chatRef = _db.getReference("chat")
     private val userRef = _db.getReference("user")
+    private val receiverId = FirebaseAuth.getInstance().uid
 
+    private var chatJob: Job? = null
+
+    init {
+        chatJob = viewModelScope.launch(Dispatchers.IO) {
+            listenForChats()
+        }
+    }
 
     // message list
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
@@ -74,6 +86,50 @@ open class ChatViewModel : ViewModel() {
     }
 
 
+    // chat id and chat
+    private fun generateChatID(senderId: String, receiverId: String): String {
+        val sortedIds = listOf(senderId, receiverId).sorted()
+        val chatID = "${sortedIds[0]}+${sortedIds[1]}"
+
+        return chatID
+    }
+
+    fun deleteChatId(chatId: String, uid: String, onSuccess: (Boolean) -> Unit) {
+
+        chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                val participants = chatId.split("+")
+                if (participants.contains(uid)) {
+                    onSuccess(true)
+                    chatRef.child(chatId).removeValue()
+
+                } else {
+                    onSuccess(false)
+                }
+            } else {
+                onSuccess(false)
+            }
+        }.addOnFailureListener {
+            onSuccess(false)
+        }
+    }
+
+
+    private fun getChatId(receiverId: String, senderId: String): String {
+        var chatId = generateChatID(receiverId = receiverId, senderId = senderId)
+
+        chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
+            chatId = if (snapshot.exists()) {
+                snapshot.key.toString()
+            } else {
+                snapshot.key.toString()
+            }
+        }.addOnFailureListener {
+            Log.e("Firebase", "Error fetching chats: ${it.message}")
+        }
+        return chatId
+    }
+
     fun initiateChat(
         senderId: String, receiverId: String, message: String = "", onClick: (String) -> Unit
     ) {
@@ -95,6 +151,8 @@ open class ChatViewModel : ViewModel() {
         }
     }
 
+
+    // message
 
     fun sendMessage(
         chatId: String,
@@ -282,110 +340,96 @@ open class ChatViewModel : ViewModel() {
         _messages.value = emptyList()
     }
 
+    fun listenForChats() {
+        receiverId?.let {
+            chatRef.addChildEventListener(object : ChildEventListener {
+                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                    val chatId = snapshot.key
+                    if (chatId != null && chatId.contains(receiverId)) {
+                        val participants = chatId.split("+")
 
-    // message edit
-
-    fun deleteIndividualMessage(chatId: String, messageId: String) {
-
-        chatRef.child(chatId).child("messages").child(messageId).removeValue()
-            .addOnCompleteListener {
-                // onResult()
-                Log.d("TAG", "deleteIndividualMessage: succ")
-            }.addOnFailureListener {
-                Log.d("TAG", "deleteIndividualMessage: failed")
-            }
-    }
+                        if (participants.contains(receiverId)) {
+                            val newChat = Chats(chatId = chatId)
+                            val existingChat = _chats.value.find { it.chatId == chatId }
 
 
-    fun listenForChats(receiverId: String) {
-
-        chatRef.addChildEventListener(object : ChildEventListener {
-            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val chatId = snapshot.key
-                if (chatId != null && chatId.contains(receiverId)) {
-                    val participants = chatId.split("+")
-
-                    if (participants.contains(receiverId)) {
-                        val newChat = Chats(chatId = chatId)
-                        val existingChat = _chats.value.find { it.chatId == chatId }
-
-
-
-                        getLastMessage(chatId) { lstMsg ->
-                            lstMsg?.let { newChat.lastMessage = it }
-                        }
-
-                        getParticipants(chatId) { prt ->
-                            newChat.participants = prt
-                        }
-
-                        if (existingChat == null || existingChat != newChat) {
-                            val updatedChats = _chats.value.toMutableList()
-                            if (existingChat != null) {
-                                val index = updatedChats.indexOfFirst { it.chatId == chatId }
-                                updatedChats[index] = newChat
-                            } else {
-                                updatedChats.add(newChat)
-                            }
-                            _chats.value = updatedChats.sortedByDescending {
-                                it.lastMessage?.timestamp
+                            getLastMessage(chatId) { lstMsg ->
+                                lstMsg?.let { newChat.lastMessage = it }
                             }
 
-                        }
-                    }
-                }
-            }
-
-
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                val chatId = snapshot.key
-                if (chatId != null && chatId.contains(receiverId)) {
-                    val participants = chatId.split("+")
-
-                    if (participants.size == 2 && participants.contains(receiverId)) {
-                        val updatedChat = Chats(chatId = chatId)
-                        val existingChat = _chats.value.find { it.chatId == chatId }
-
-                        // Correct approach
-                        getLastMessage(chatId) { lstMsg ->
-                            lstMsg?.let { updatedChat.lastMessage = it }
                             getParticipants(chatId) { prt ->
-                                updatedChat.participants = prt
+                                newChat.participants = prt
                             }
-                        }
-                        if (existingChat != updatedChat) {
-                            // Only update if there's an actual change
-                            val updatedChats = _chats.value.toMutableList()
-                            val index = updatedChats.indexOfFirst { it.chatId == chatId }
-                            if (index >= 0) {
-                                updatedChats[index] = updatedChat
-                                _chats.value = updatedChats
+
+                            if (existingChat == null || existingChat != newChat) {
+                                val updatedChats = _chats.value.toMutableList()
+                                if (existingChat != null) {
+                                    val index = updatedChats.indexOfFirst { it.chatId == chatId }
+                                    updatedChats[index] = newChat
+                                } else {
+                                    updatedChats.add(newChat)
+                                }
+                                _chats.value = updatedChats.sortedByDescending {
+                                    it.lastMessage?.timestamp
+                                }
+
                             }
                         }
                     }
                 }
-            }
 
-            override fun onChildRemoved(snapshot: DataSnapshot) {
-                val chatId = snapshot.key
-                if (chatId != null) {
-                    // Remove the chat from the list
-                    val updatedChats = _chats.value.toMutableList()
-                    val index = updatedChats.indexOfFirst { it.chatId == chatId }
 
-                    if (index >= 0) {
-                        updatedChats.removeAt(index)
-                        _chats.value = updatedChats
+                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                    val chatId = snapshot.key
+                    if (chatId != null && chatId.contains(receiverId)) {
+                        val participants = chatId.split("+")
+
+                        if (participants.size == 2 && participants.contains(receiverId)) {
+                            val updatedChat = Chats(chatId = chatId)
+                            val existingChat = _chats.value.find { it.chatId == chatId }
+
+                            getLastMessage(chatId) { lstMsg ->
+                                lstMsg?.let { updatedChat.lastMessage = it }
+                                getParticipants(chatId) { prt ->
+                                    updatedChat.participants = prt
+                                }
+                            }
+                            if (existingChat != updatedChat) {
+                                // Only update if there's an actual change
+                                val updatedChats = _chats.value.toMutableList()
+                                val index = updatedChats.indexOfFirst { it.chatId == chatId }
+                                if (index >= 0) {
+                                    updatedChats[index] = updatedChat
+                                    _chats.value = updatedChats
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+                override fun onChildRemoved(snapshot: DataSnapshot) {
+                    val chatId = snapshot.key
+                    if (chatId != null) {
+                        // Remove the chat from the list
+                        val updatedChats = _chats.value.toMutableList()
+                        val index = updatedChats.indexOfFirst { it.chatId == chatId }
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("ChatListener", "Error listening for chats: ${error.message}")
-            }
-        })
+                        if (index >= 0) {
+                            updatedChats.removeAt(index)
+                            _chats.value = updatedChats
+                        }
+                    }
+                }
+
+                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("ChatListener", "Error listening for chats: ${error.message}")
+                }
+            })
+        }
+
+
     }
 
 
@@ -435,30 +479,7 @@ open class ChatViewModel : ViewModel() {
     }
 
 
-    private fun generateChatID(senderId: String, receiverId: String): String {
-        val sortedIds = listOf(senderId, receiverId).sorted()
-        val chatID = "${sortedIds[0]}+${sortedIds[1]}"
-
-        return chatID
-    }
-
-    private fun getChatId(receiverId: String, senderId: String): String {
-        var chatId = generateChatID(receiverId = receiverId, senderId = senderId)
-
-        chatRef.child(chatId).get().addOnSuccessListener { snapshot ->
-            chatId = if (snapshot.exists()) {
-                snapshot.key.toString()
-            } else {
-                snapshot.key.toString()
-            }
-        }.addOnFailureListener {
-            Log.e("Firebase", "Error fetching chats: ${it.message}")
-        }
-        return chatId
-    }
-
-
-// find user section
+    // find user section
 
     fun findUser(search: String) {
         if (search.isEmpty()) {
@@ -552,11 +573,25 @@ open class ChatViewModel : ViewModel() {
             })
     }
 
+
+    // delete messages
+
+
+    fun deleteIndividualMessage(chatId: String, messageId: String) {
+
+        chatRef.child(chatId).child("messages").child(messageId).removeValue()
+            .addOnCompleteListener {
+                // onResult()
+                Log.d("TAG", "deleteIndividualMessage: succ")
+            }.addOnFailureListener {
+                Log.d("TAG", "deleteIndividualMessage: failed")
+            }
+    }
+
+
     fun clearChats() {
         _chats.value = emptyList()
     }
-
-    // incognito
 
     fun deleteMyMessages(chatId: String, senderId: String, onComplete: (Boolean) -> Unit) {
         chatRef.child(chatId).child("messages").get().addOnSuccessListener { snapshot ->
@@ -611,7 +646,8 @@ open class ChatViewModel : ViewModel() {
     }
 
 
-    // message list
+    // incognito
+
     private val _incognitoMessages = MutableStateFlow<List<IncognitoMessage>>(emptyList())
     val incognitoMessages: StateFlow<List<IncognitoMessage>> = _incognitoMessages
 

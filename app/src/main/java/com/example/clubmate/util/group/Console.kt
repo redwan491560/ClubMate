@@ -777,8 +777,10 @@ fun Console(
                                                         visibility = selectedCategory,
                                                         grpId = args.grpId
                                                     ) {
-                                                        title = ""; event = ""; link = ""; notice =
-                                                        ""
+                                                        title = ""
+                                                        event = ""
+                                                        link = ""
+                                                        notice = ""
                                                         launchToast(context, "Upload successful")
                                                     }
                                                 }

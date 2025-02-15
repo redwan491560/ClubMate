@@ -122,19 +122,19 @@ fun UserDetailsScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.width(160.dp),
                         onClick = {
-
-                        }) {
-                        TextDesign(text = "Report Chat")
-                    }
-
-                    TextButton(
-                        onClick = {
                             chatViewmodel.deleteMyMessages(
                                 chatId = userDetails.chatID, senderId = currentUser.uid
                             ) {
                                 if (it) launchToast(context, "Message deleted successfully")
                                 else launchToast(context, "Error occurred")
                             }
+                        }) {
+                        TextDesign(text = "Delete message")
+                    }
+
+                    TextButton(
+                        onClick = {
+
                         },
                         colors = ButtonDefaults.buttonColors(Color.Red),
                         shape = RoundedCornerShape(8.dp),

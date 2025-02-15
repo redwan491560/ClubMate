@@ -267,7 +267,6 @@ fun AccountScreen(authViewmodel: AuthViewModel, navController: NavController) {
                                                 "Error occured try again"
                                             )
                                         }
-
                                     }
                             )
                         }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,7 +44,9 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,7 +88,7 @@ import com.example.clubmate.viewmodel.MainViewmodel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "StateFlowValueCalledInComposition")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
     chatViewmodel: ChatViewModel,
@@ -100,9 +101,8 @@ fun MainScreen(
     var alertState by remember { mutableStateOf(false) }
     var grpState by remember { mutableStateOf(false) }
 
-    val currentUser = authViewModel.currentUser
-    val authState = authViewModel.authState
-    val currentUserId = currentUser.value?.uid
+    val currentUser = authViewModel.currentUser.collectAsState()
+    val authState = authViewModel.authState.observeAsState()
 
     LaunchedEffect(Unit) {
         if (authState.value == Status.NotAuthenticated)
@@ -123,30 +123,23 @@ fun MainScreen(
     var chipsState by rememberSaveable { mutableIntStateOf(0) }
 
     val animationDuration = 300
-    var isSorted by remember { mutableStateOf(false) }
 
     val chatsList = chatViewmodel.chats.collectAsStateWithLifecycle()
     val groupsList = grpViewmodel.groupsList.collectAsStateWithLifecycle()
 
-    LaunchedEffect(groupsList.value) {
+    LaunchedEffect(Unit) {
         currentUser.value?.let {
             grpViewmodel.listenForGroups(it.uid)
         }
     }
 
 
-    LaunchedEffect(chatsList.value) {
-        currentUser.value?.let {
-            chatViewmodel.listenForChats(currentUser.value!!.uid)
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        currentUser.value?.let {
+//            chatViewmodel.listenForChats(currentUser.value!!.uid)
+//        }
+//    }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            chatViewmodel.clearChats()
-            grpViewmodel.clearGroups()
-        }
-    }
 
 
     var searchText by remember { mutableStateOf("") }
@@ -411,9 +404,7 @@ fun MainScreen(
                                                 senderId = uid,
                                                 receiverId = user.uid,
                                                 message = ""
-                                            ) {
-
-                                            }
+                                            ) {}
                                             alertState = false
                                             query = ""
                                             chatViewmodel.emptyUser()
@@ -568,15 +559,7 @@ fun MainScreen(
                                     fontFamily = roboto,
                                     modifier = Modifier.clickable {
                                         chipsState = index
-                                        if (index == 0){
-                                            currentUser.value?.let {
-                                                chatViewmodel.listenForChats(currentUser.value!!.uid)
-                                            }
-                                        }else{
-                                            currentUser.value?.let {
-                                                grpViewmodel.listenForGroups(it.uid)
-                                            }
-                                        }
+
                                     })
                             }
                         }
@@ -603,7 +586,7 @@ fun MainScreen(
 
                                     items(filteredChats) { item ->
                                         val receiver =
-                                            item.participants.find { it.uid != currentUserId }
+                                            item.participants.find { it.uid != currentUser.value?.uid }
 
                                         receiver?.username?.let {
                                             item.lastMessage?.let { it2 ->
@@ -643,14 +626,14 @@ fun MainScreen(
                                 ) {
 
                                     items(filteredGroups) { item ->
-                                        currentUserId?.let {
+                                        currentUser.value?.uid?.let { uid ->
                                             GroupDesign(
                                                 grpName = item.grpName,
                                                 lastActivity = item.lastActivity
                                             ) {
                                                 navController.navigate(
                                                     Routes.GroupModel(
-                                                        user = currentUserId, grpId = item.grpId
+                                                        user = uid, grpId = item.grpId
                                                     )
                                                 )
                                             }
@@ -662,14 +645,15 @@ fun MainScreen(
                             if (chipsState == 1) {
                                 if (chatsList.value.isNotEmpty()) {
                                     LazyColumn(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth(),
                                         verticalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
                                         items(chatsList.value.sortedByDescending {
                                             it.lastMessage?.timestamp
                                         }) { item ->
                                             val receiver = item.participants.find {
-                                                it.uid != currentUserId
+                                                it.uid != currentUser.value?.uid
                                             }
 
                                             receiver?.username?.let {
@@ -704,14 +688,14 @@ fun MainScreen(
                                     items(groupsList.value.sortedByDescending {
                                         it.lastActivity.message.timestamp
                                     }) { item ->
-                                        currentUserId?.let {
+                                        currentUser.value?.uid?.let { uid ->
                                             GroupDesign(
                                                 grpName = item.grpName,
                                                 lastActivity = item.lastActivity
                                             ) {
                                                 navController.navigate(
                                                     Routes.GroupModel(
-                                                        user = currentUserId, grpId = item.grpId
+                                                        user = uid, grpId = item.grpId
                                                     )
                                                 )
                                             }
@@ -731,7 +715,9 @@ fun MainScreen(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Absolute.Center
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.Absolute.Center
                 ) {
                     TextDesign(text = "alpha version 1.6.11", size = 11)
                 }
