@@ -163,10 +163,12 @@ class AuthViewModel : ViewModel() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun register(
-        email: String, password: String,
+        email: String,
+        password: String,
         userName: String,
         context: Context,
-        phone: String, onClick: (Boolean) -> Unit
+        phone: String,
+        onClick: (Boolean) -> Unit
     ) {
         if (email.isBlank() || password.isBlank() || phone.isBlank()) {
             _authState.value = Status.Error("Email / password or phone cannot be empty")

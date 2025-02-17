@@ -50,8 +50,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,7 +86,7 @@ fun ChatScreen(
 
     var text by remember { mutableStateOf("") }
     val context = LocalContext.current
-
+    val clipboardManager = LocalClipboardManager.current
 
     val receiverId = userModel.uid
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -411,6 +413,9 @@ fun ChatScreen(
                             MessageItem(message = message,
                                 isSent = messages.value[ind].senderId == user.uid,
                                 time = chatViewmodel.convertTimestampToDate(messages.value[ind].timestamp),
+                                onSelect = {
+                                    clipboardManager.setText(AnnotatedString(message.messageText))
+                                },
                                 onDeleteMessage = { msg ->
                                     chatViewmodel.deleteIndividualMessage(
                                         chatId = userModel.chatID, messageId = msg.messageId

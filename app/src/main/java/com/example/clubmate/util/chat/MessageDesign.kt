@@ -43,6 +43,7 @@ fun MessageItem(
     message: Message,
     isSent: Boolean,
     time: String = "",
+    onSelect: () -> Unit,
     status: MessageStatus = MessageStatus.SENDING,
     onDeleteMessage: (Message) -> Unit
 ) {
@@ -76,11 +77,15 @@ fun MessageItem(
                         .background(bgColor)
                         .padding(vertical = 6.dp, horizontal = 4.dp)
                         .pointerInput(Unit) {
-                            detectTapGestures(onLongPress = {
-                                if (isSent) isSelected = true
-                            }, onTap = {
-                                if (isSelected) isSelected = false
-                            })
+                            detectTapGestures(
+                                onDoubleTap = {
+                                    onSelect()
+                                },
+                                onLongPress = {
+                                    if (isSent) isSelected = true
+                                }, onTap = {
+                                    if (isSelected) isSelected = false
+                                })
                         },
                 ) {
                     if (message.imageRef.isNotEmpty()) {

@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -159,26 +157,16 @@ fun UserDetailsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .align(Alignment.Center),
-                        color = Color.Gray,
-                        strokeWidth = 4.dp
-                    )
+                AsyncImage(
+                    model = details.photoUrl,
+                    contentDescription = "group photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(60.dp)),
+                    error = painterResource(id = R.drawable.logo_primary)
+                )
 
-                    AsyncImage(
-                        model = details.photoUrl,
-                        contentDescription = "group photo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(RoundedCornerShape(60.dp))
-                    )
-                }
                 Spacer(modifier = Modifier.heightIn(10.dp))
                 TextDesign(text = userDetails.username, size = 18)
                 TextDesign(text = userDetails.email, size = 15)

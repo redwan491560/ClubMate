@@ -1,6 +1,8 @@
 package com.example.clubmate.privateChannel
 
 import android.annotation.SuppressLint
+import android.content.ClipboardManager
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -43,8 +45,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +77,9 @@ fun PrivateChannel(
     val messages = viewModel.privateMessageList.collectAsState()
 
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+
+
     val listState = rememberLazyListState()
     LaunchedEffect(messages.value.size) {
         if (messages.value.isNotEmpty()) {
@@ -123,7 +130,9 @@ fun PrivateChannel(
                         size = 11,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
-                    TextDesign(text = channelId, color = Color.White, size = 18)
+                    TextDesignClickable(text = channelId, color = Color.White, size = 18){
+                        clipboardManager.setText(AnnotatedString(channelId))
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
